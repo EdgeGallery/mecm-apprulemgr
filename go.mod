@@ -20,6 +20,9 @@ require (
 	github.com/astaxie/beego v1.12.3
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/sirupsen/logrus v1.7.0
+	github.com/stretchr/testify v1.4.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	github.com/stretchr/testify v1.6.1
+	github.com/agiledragon/gomonkey v2.0.1+incompatible
 )
