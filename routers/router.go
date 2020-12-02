@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// LCM broker APIs
+// Application rule manager APIs
 package routers
 
 import (
