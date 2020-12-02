@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-// LCM broker APIs
-package routers
+package controllers
 
-import (
-	"github.com/astaxie/beego"
-	"mecm-apprulemgr/controllers"
-)
+import "github.com/astaxie/beego"
 
-const RootPath string = "/apprulemgr/v1"
+// Application Rule Controller
+type AppRuleController struct {
+	beego.Controller
+}
 
-// Init application rule controller APIs
-func init() {
-	beego.Router(RootPath+"/health", &controllers.AppRuleController{}, "get:HealthCheck")
+// Heath Check
+func (c *AppRuleController) HealthCheck() {
+	_, _ = c.Ctx.ResponseWriter.Write([]byte("ok"))
 }
