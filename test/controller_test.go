@@ -14,27 +14,24 @@
  * limitations under the License.
  */
 
-package main
+package test
 
 import (
 	"github.com/astaxie/beego"
-	log "github.com/sirupsen/logrus"
-	_ "mecm-apprulemgr/config"
-	"mecm-apprulemgr/controllers"
-	_ "mecm-apprulemgr/controllers"
+	"github.com/stretchr/testify/assert"
 	_ "mecm-apprulemgr/routers"
-	"mecm-apprulemgr/util"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
-// Start application rule manager application
-func main() {
-	tlsConf, err := util.TLSConfig("HTTPSCertFile")
-	if err != nil {
-		log.Error("failed to config tls for beego")
-		return
-	}
+func TestEndPoint(t *testing.T) {
 
-	beego.BeeApp.Server.TLSConfig = tlsConf
-	beego.ErrorController(&controllers.ErrorController{})
-	beego.Run()
+	t.Run("TestHealthCheck", func(t *testing.T) {
+		r, _ := http.NewRequest("GET", "/apprulemgr/v1/health", nil)
+		w := httptest.NewRecorder()
+		beego.BeeApp.Handlers.ServeHTTP(w, r)
+		assert.Equal(t, "ok", w.Body.String(), "Health check output is not ok")
+		assert.Equal(t, 200, w.Code, "Health Check output code is not 200")
+	})
 }
