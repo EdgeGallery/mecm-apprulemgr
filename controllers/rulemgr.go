@@ -16,7 +16,14 @@
 
 package controllers
 
-import "github.com/astaxie/beego"
+import (
+	"encoding/json"
+	"github.com/astaxie/beego"
+	log "github.com/sirupsen/logrus"
+	"mecm-apprulemgr/models"
+	"mecm-apprulemgr/util"
+	"net/http"
+)
 
 // Application Rule Controller
 type AppRuleController struct {
@@ -26,4 +33,186 @@ type AppRuleController struct {
 // Heath Check
 func (c *AppRuleController) HealthCheck() {
 	_, _ = c.Ctx.ResponseWriter.Write([]byte("ok"))
+}
+
+// Configures app rule
+func (c *AppRuleController) CreateAppRuleConfig() {
+	log.Info("Application Rule Config create request received.")
+	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		return
+	}
+	c.displayReceivedMsg(clientIp)
+
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	// TODO: validate appinstance id
+
+	var appRuleConfig *models.AppdRule
+	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+		return
+	}
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "POST", appRuleConfig)
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	request := createAppRuleConfig(restClient)
+	response, err := request.handleAppRuleRequest()
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	if response.code == http.StatusOK {
+		progressModelBytes, err := json.Marshal(response.progressModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			return
+		}
+
+		c.writeResponse(string(progressModelBytes), response.code)
+	} else {
+		failureModelBytes, err := json.Marshal(response.failureModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			return
+		}
+
+		c.writeResponse(string(failureModelBytes), response.code)
+	}
+}
+
+// Updates app rule configuration
+func (c *AppRuleController) UpdateAppRuleConfig() {
+	log.Info("Application Rule Config update request received.")
+	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		return
+	}
+	c.displayReceivedMsg(clientIp)
+
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+
+	// TODO: validate appinstance id
+	var appRuleConfig *models.AppdRule
+	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+		return
+	}
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "PUT", appRuleConfig)
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	request := createAppRuleConfig(restClient)
+	response, err := request.handleAppRuleRequest()
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	if response.code == http.StatusOK {
+		progressModelBytes, err := json.Marshal(response.progressModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			return
+		}
+
+		c.writeResponse(string(progressModelBytes), response.code)
+	} else {
+		failureModelBytes, err := json.Marshal(response.failureModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			return
+		}
+
+		c.writeResponse(string(failureModelBytes), response.code)
+	}
+}
+
+// Deletes app rule configuration
+func (c *AppRuleController) DeleteAppRuleConfig() {
+	log.Info("Application Rule Config delete request received.")
+	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		return
+	}
+	c.displayReceivedMsg(clientIp)
+
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	// TODO: validate appinstance id
+
+	var appRuleConfig *models.AppdRule
+	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+		return
+	}
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "DELETE", appRuleConfig)
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	request := createAppRuleConfig(restClient)
+	response, err := request.handleAppRuleRequest()
+	if err != nil {
+		c.handleLoggingForError(clientIp, 500, err.Error())
+		return
+	}
+
+	if response.code == http.StatusOK {
+		progressModelBytes, err := json.Marshal(response.progressModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			return
+		}
+
+		c.writeResponse(string(progressModelBytes), response.code)
+	} else {
+		failureModelBytes, err := json.Marshal(response.failureModel)
+		if err != nil {
+			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			return
+		}
+
+		c.writeResponse(string(failureModelBytes), response.code)
+	}
+}
+
+// Handled logging for error case
+func (c *AppRuleController) handleLoggingForError(clientIp string, code int, errMsg string) {
+	c.writeErrorResponse(errMsg, code)
+	log.Info("Response message for ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
+		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
+}
+
+// Write error response
+func (c *AppRuleController) writeErrorResponse(errMsg string, code int) {
+	log.Error(errMsg)
+	c.writeResponse(errMsg, code)
+}
+
+// Write response
+func (c *AppRuleController) writeResponse(msg string, code int) {
+	c.Data["json"] = msg
+	c.Ctx.ResponseWriter.WriteHeader(code)
+	c.ServeJSON()
+}
+
+// To display log for received message
+func (c *AppRuleController) displayReceivedMsg(clientIp string) {
+	log.Info("Received message from ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
+		" Resource [" + c.Ctx.Input.URL() + "]")
 }
