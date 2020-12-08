@@ -27,4 +27,10 @@ const RootPath string = "/apprulemgr/v1"
 // Init application rule controller APIs
 func init() {
 	beego.Router(RootPath+"/health", &controllers.AppRuleController{}, "get:HealthCheck")
+	beego.Router(RootPath+"/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
+	"post:CreateAppRuleConfig")
+	beego.Router(RootPath+"/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
+		"post:UpdateAppRuleConfig")
+	beego.Router(RootPath+"/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
+		"post:DeleteAppRuleConfig")
 }
