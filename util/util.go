@@ -20,17 +20,33 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"github.com/astaxie/beego"
+	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"strings"
-	"github.com/astaxie/beego"
 )
 
-// Log related constants
 const (
-	MaxSize int = 20
+	// Log related constants
+	MaxSize    int = 20
 	MaxBackups int = 50
-	MaxAge = 30
+	MaxAge         = 30
+
+	// input validations related constants
+	BadRequest             int = 400
+	ClientIpaddressInvalid     = "client ip address is invalid"
+
+	AppInstanceId string = ":appInstanceId"
+
+	MepAddress        = "MEP_ADDR"
+	MepPort           = "MEP_PORT"
+	DefaultMepAddress = "edgegallery"
+	DefaultMepPort    = "8444"
+
+	HttpsUrl string = "https://"
 )
 
 var cipherSuiteMap = map[string]uint16{
@@ -64,10 +80,10 @@ func TLSConfig(crtName string) (*tls.Config, error) {
 		return nil, errors.New("TLS cipher configuration is not recommended or invalid")
 	}
 	return &tls.Config{
-		RootCAs:      rootCAs,
-		MinVersion:   tls.VersionTLS12,
-		CipherSuites: cipherSuites,
-		ServerName:   GetAppConfig("serverName"),
+		RootCAs:            rootCAs,
+		MinVersion:         tls.VersionTLS12,
+		CipherSuites:       cipherSuites,
+		ServerName:         GetAppConfig("serverName"),
 		InsecureSkipVerify: true,
 	}, nil
 }
@@ -97,4 +113,64 @@ func GetCipherSuites(sslCiphers string) []uint16 {
 		return cipherSuiteArr
 	}
 	return nil
+}
+
+// Validate IPv4 address
+func ValidateIpv4Address(id string) error {
+	if id == "" {
+		return errors.New("require ip address")
+	}
+	if len(id) != 0 {
+		validate := validator.New()
+		return validate.Var(id, "required,ipv4")
+	}
+	return nil
+}
+
+// Get MEP address
+func GetMepAddr() string {
+	mepAddress := os.Getenv(MepAddress)
+	if mepAddress == "" {
+		mepAddress = DefaultMepAddress
+	}
+	return mepAddress
+}
+
+// Get MEP port
+func GetMepPort() string {
+	mepPort := os.Getenv(MepPort)
+	if mepPort == "" {
+		mepPort = DefaultMepPort
+	}
+	return mepPort
+}
+
+// Does https request
+func DoRequest(req *http.Request) (*http.Response, error) {
+	config, err := TLSConfig("DB_SSL_ROOT_CERT")
+	if err != nil {
+		log.Error("Unable to send request")
+		return nil, err
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: config,
+	}
+	client := &http.Client{Transport: tr}
+
+	return client.Do(req)
+}
+
+// Creates appd Rule url
+func CreateAppdRuleUrl(appInstanceId string) string {
+	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/app_lcm/v1/applications/" +
+		appInstanceId + "/appd_configuration"
+	return url
+}
+
+// Creates task query URL
+func CreateTaskQueryUrl(taskId string) string {
+	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/app_lcm/v1/tasks/" +
+		taskId + "/appd_configuration"
+	return url
 }
