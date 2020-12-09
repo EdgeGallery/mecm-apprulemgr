@@ -65,10 +65,9 @@ const (
 	// error messages
 	ClientIpaddressInvalid    = "client ip address is invalid"
 	MarshalProgressModelError = "failed to marshal progress model"
-	MarshalFailureModelError  = "failed to marshal failure model"
-	MarshaAppRuleModelError   = "failed to marshal app rule model"
+	MarshalAppRuleModelError  = "failed to marshal app rule model"
 	UnknownRestMethod         = "unknown rest method"
-	ErrorFromMep              = "error response from mep"
+	FailedToWriteRes          = "failed to write response into context"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -88,8 +87,8 @@ const (
 	HttpsUrl            string = "https://"
 	AccessToken         string = "access_token"
 	AuthorizationFailed string = "Authorization failed"
-	MecmTenantRole             = "ROLE_MECM_TENANT"
-	MecmGuestRole              = "ROLE_MECM_GUEST"
+	MecmTenantRole      string = "ROLE_MECM_TENANT"
+	MecmGuestRole       string = "ROLE_MECM_GUEST"
 	InvalidToken        string = "invalid token"
 )
 
@@ -338,13 +337,13 @@ func isRoleAllowed(actual string, allowed []string) bool {
 	return false
 }
 
-// Creates failure model
-func CreateOperationFailureModel(progressModel *models.OperationProgressModel) *models.OperationFailureModel {
-	return &models.OperationFailureModel{
-		Type:   progressModel.ConfigResult,
-		Title:  "config failed",
-		Status: 1,
-		Detail: progressModel.Detailed,
+// Creates progress model
+func CreateOperationProgressModel(appInstanceId string, configResult string,
+	details string) *models.OperationProgressModel {
+	return &models.OperationProgressModel{
+		AppInstanceId: appInstanceId,
+		ConfigResult:  configResult,
+		Detailed:      details,
 	}
 }
 

@@ -31,7 +31,7 @@ type iRestClient interface {
 	sendRequest() (*http.Response, error)
 }
 
-// Represents Restclient model
+// Represents RestClient model
 type RestClient struct {
 	url    string
 	method string
@@ -59,7 +59,7 @@ func (r *RestClient) sendRequest() (*http.Response, error) {
 		return nil, err
 	}
 
-	log.Info("returning response")
+	log.Info("mep response code " + response.Status)
 	return response, nil
 }
 
@@ -82,52 +82,46 @@ func createRequest(url string, method string, body []byte) (*http.Request, error
 // Represents response model
 type Response struct {
 	code          int
-	failureModel  *models.OperationFailureModel
 	progressModel *models.OperationProgressModel
+	appdrule      *models.AppdRule
 }
 
 // Creates new progress response model
-func createProgressResponse(httpStatusCode int, operationProgressModel *models.OperationProgressModel) *Response {
+func createResponse(httpStatusCode int, operationProgressModel *models.OperationProgressModel) *Response {
 	return &Response{
 		code:          httpStatusCode,
 		progressModel: operationProgressModel,
 	}
 }
 
-// Creates new failure response model
-func createFailureResponse(httpStatusCode int, operationFailureModel *models.OperationFailureModel) *Response {
+// Creates new get request response model
+func createGetResponse(httpStatusCode int, appdRule *models.AppdRule) *Response {
 	return &Response{
-		code:         httpStatusCode,
-		failureModel: operationFailureModel,
+		code:     httpStatusCode,
+		appdrule: appdRule,
 	}
 }
 
 // Parses response from mep
-func parseResponse(httpResponse *http.Response) (*Response, error) {
+func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response, error) {
 	mepResponse, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
+		log.Info("failed to read mep response body")
 		return nil, err
 	}
 
-	if httpResponse.StatusCode == http.StatusOK || httpResponse.StatusCode == http.StatusAccepted {
+	if httpResponse.StatusCode == http.StatusOK {
 		var operationProgressModel *models.OperationProgressModel
 		if err = json.Unmarshal(mepResponse, &operationProgressModel); err != nil {
 			return nil, err
 		}
-
-		return createProgressResponse(httpResponse.StatusCode, operationProgressModel), nil
-	} else if httpResponse.StatusCode == http.StatusBadRequest ||
-		httpResponse.StatusCode == http.StatusForbidden ||
-		httpResponse.StatusCode == http.StatusNotFound {
-
-		var operationFailureModel *models.OperationFailureModel
-		if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
-			return nil, err
-		}
-
-		return createFailureResponse(httpResponse.StatusCode, operationFailureModel), nil
+		return createResponse(httpResponse.StatusCode, operationProgressModel), nil
 	}
 
-	log.Info("error response from mep, status code", httpResponse.StatusCode)
-	return nil, errors.New(util.ErrorFromMep)
+	var operationFailureModel *models.OperationFailureModel
+	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
+		return nil, err
+	}
+	return createResponse(httpResponse.StatusCode,
+		util.CreateOperationProgressModel(appInstanceId, util.Failure, operationFailureModel.Detail)), nil
 }

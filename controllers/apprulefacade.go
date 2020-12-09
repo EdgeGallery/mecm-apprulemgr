@@ -27,13 +27,15 @@ import (
 
 // Represents app rule config facade
 type AppRuleFacade struct {
-	restClient iRestClient
+	appInstanceId string
+	restClient    iRestClient
 }
 
 // Creates new app rule facade
-func createAppRuleFacade(restClient *RestClient) *AppRuleFacade {
+func createAppRuleFacade(restClient *RestClient, appInstanceId string) *AppRuleFacade {
 	return &AppRuleFacade{
-		restClient: restClient,
+		restClient:    restClient,
+		appInstanceId: appInstanceId,
 	}
 }
 
@@ -45,27 +47,28 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 	}
 	defer httpResponse.Body.Close()
 
-	response, err := parseResponse(httpResponse)
+	response, err := parseResponse(httpResponse, a.appInstanceId)
 	if err != nil {
 		return nil, err
 	}
 
-	if response.code == http.StatusAccepted {
-		if response.progressModel.ConfigResult == util.Success {
-			log.Info(util.AppRuleConfigSuccess)
-			return response, nil
-		} else if response.progressModel.ConfigResult == util.Failure {
-			log.Info(util.AppRuleConfigFailed)
-			return createFailureResponse(http.StatusInternalServerError, util.CreateOperationFailureModel(response.
-				progressModel)), nil
-		}
-
-		log.Info("Configuration is in progress, sending task query")
-		restClient := CreateRestClient(util.CreateTaskQueryUrl(response.progressModel.TaskId), util.Get, nil)
-		taskInfo := createTaskInfo(response.progressModel.TaskId, restClient)
-		return taskInfo.handleTaskQuery()
+	if response.code != http.StatusOK {
+		return response, nil
 	}
-	return response, nil
+
+	if response.progressModel.ConfigResult == util.Success {
+		log.Info(util.AppRuleConfigSuccess)
+		return response, nil
+	} else if response.progressModel.ConfigResult == util.Failure {
+		log.Info(util.AppRuleConfigFailed)
+		response.code = util.InternalServerError
+		return response, nil
+	}
+
+	log.Info("configuration is in progress, sending task query")
+	restClient := CreateRestClient(util.CreateTaskQueryUrl(response.progressModel.TaskId), util.Get, nil)
+	task := createTask(response.progressModel.TaskId, restClient, a.appInstanceId)
+	return task.handleTaskQuery()
 }
 
 // Creates new rest client based on method
@@ -74,14 +77,14 @@ func createRestClient(url string, method string, rule *models.AppdRule) (*RestCl
 	case util.Post:
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
-			return nil, errors.New(util.MarshaAppRuleModelError)
+			return nil, errors.New(util.MarshalAppRuleModelError)
 		}
 
 		return CreateRestClient(url, method, appRuleConfigBytes), nil
 	case util.Put:
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
-			return nil, errors.New(util.MarshaAppRuleModelError)
+			return nil, errors.New(util.MarshalAppRuleModelError)
 		}
 
 		return CreateRestClient(url, method, appRuleConfigBytes), nil
