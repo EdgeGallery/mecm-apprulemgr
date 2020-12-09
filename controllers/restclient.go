@@ -49,17 +49,13 @@ func CreateRestClient(url string, method string, body []byte) *RestClient {
 
 // Sends rest request and returns response
 func (r *RestClient) sendRequest() (*http.Response, error) {
-	log.Info("send request to mep method" + r.url)
-
 	request, err := createRequest(r.url, r.method, r.body)
 	if err != nil {
-		log.Info("error while creating request")
 		return nil, err
 	}
 
 	response, err := util.DoRequest(request)
 	if err != nil {
-		log.Info("error from do request")
 		return nil, err
 	}
 
@@ -70,16 +66,16 @@ func (r *RestClient) sendRequest() (*http.Response, error) {
 // Creates rest request based on method
 func createRequest(url string, method string, body []byte) (*http.Request, error) {
 	switch method {
-	case "GET":
-		return http.NewRequest("GET", url, nil)
-	case "DELETE":
-		return http.NewRequest("DELETE", url, nil)
-	case "POST":
-		return http.NewRequest("POST", url, bytes.NewBuffer(body))
-	case "PUT":
-		return http.NewRequest("PUT", url, bytes.NewBuffer(body))
+	case util.Get:
+		return http.NewRequest(method, url, nil)
+	case util.Delete:
+		return http.NewRequest(method, url, nil)
+	case util.Post:
+		return http.NewRequest(method, url, bytes.NewBuffer(body))
+	case util.Put:
+		return http.NewRequest(method, url, bytes.NewBuffer(body))
 	default:
-		return nil, errors.New("unknown rest method")
+		return nil, errors.New(util.UnknownRestMethod)
 	}
 }
 
@@ -98,6 +94,14 @@ func createProgressResponse(httpStatusCode int, operationProgressModel *models.O
 	}
 }
 
+// Creates new failure response model
+func createFailureResponse(httpStatusCode int, operationFailureModel *models.OperationFailureModel) *Response {
+	return &Response{
+		code:         httpStatusCode,
+		failureModel: operationFailureModel,
+	}
+}
+
 // Parses response from mep
 func parseResponse(httpResponse *http.Response) (*Response, error) {
 	mepResponse, err := ioutil.ReadAll(httpResponse.Body)
@@ -105,7 +109,7 @@ func parseResponse(httpResponse *http.Response) (*Response, error) {
 		return nil, err
 	}
 
-	if httpResponse.StatusCode == http.StatusOK {
+	if httpResponse.StatusCode == http.StatusOK || httpResponse.StatusCode == http.StatusAccepted {
 		var operationProgressModel *models.OperationProgressModel
 		if err = json.Unmarshal(mepResponse, &operationProgressModel); err != nil {
 			return nil, err
@@ -120,6 +124,10 @@ func parseResponse(httpResponse *http.Response) (*Response, error) {
 		if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
 			return nil, err
 		}
+
+		return createFailureResponse(httpResponse.StatusCode, operationFailureModel), nil
 	}
-	return nil, errors.New("error response from mep")
+
+	log.Info("error response from mep, status code", httpResponse.StatusCode)
+	return nil, errors.New(util.ErrorFromMep)
 }

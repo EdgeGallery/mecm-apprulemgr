@@ -25,21 +25,21 @@ import (
 	"net/http"
 )
 
-// Represents app rule config model
-type AppruleConfig struct {
-	restclient iRestClient
+// Represents app rule config facade
+type AppRuleFacade struct {
+	restClient iRestClient
 }
 
-// Creates new app rule config
-func createAppRuleConfig(restClient *RestClient) *AppruleConfig {
-	return &AppruleConfig{
-		restclient: restClient,
+// Creates new app rule facade
+func createAppRuleFacade(restClient *RestClient) *AppRuleFacade {
+	return &AppRuleFacade{
+		restClient: restClient,
 	}
 }
 
 // Sends app rule config request to mep
-func (a *AppruleConfig) handleAppRuleRequest() (*Response, error) {
-	httpResponse, err := a.restclient.sendRequest()
+func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
+	httpResponse, err := a.restClient.sendRequest()
 	if err != nil {
 		return nil, err
 	}
@@ -50,15 +50,18 @@ func (a *AppruleConfig) handleAppRuleRequest() (*Response, error) {
 		return nil, err
 	}
 
-	if response.code == http.StatusOK {
-		if response.progressModel.ConfigResult == "SUCCESS" ||
-			response.progressModel.ConfigResult == "FAILURE" {
-			log.Info("success from mep")
+	if response.code == http.StatusAccepted {
+		if response.progressModel.ConfigResult == util.Success {
+			log.Info(util.AppRuleConfigSuccess)
 			return response, nil
+		} else if response.progressModel.ConfigResult == util.Failure {
+			log.Info(util.AppRuleConfigFailed)
+			return createFailureResponse(http.StatusInternalServerError, util.CreateOperationFailureModel(response.
+				progressModel)), nil
 		}
 
-		log.Info("sending task query")
-		restClient := CreateRestClient(util.CreateTaskQueryUrl(response.progressModel.TaskId), "GET", nil)
+		log.Info("Configuration is in progress, sending task query")
+		restClient := CreateRestClient(util.CreateTaskQueryUrl(response.progressModel.TaskId), util.Get, nil)
 		taskInfo := createTaskInfo(response.progressModel.TaskId, restClient)
 		return taskInfo.handleTaskQuery()
 	}
@@ -68,25 +71,25 @@ func (a *AppruleConfig) handleAppRuleRequest() (*Response, error) {
 // Creates new rest client based on method
 func createRestClient(url string, method string, rule *models.AppdRule) (*RestClient, error) {
 	switch method {
-	case "POST":
+	case util.Post:
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
-			return nil, errors.New("failed to convert to appRule to bytes")
+			return nil, errors.New(util.MarshaAppRuleModelError)
 		}
 
 		return CreateRestClient(url, method, appRuleConfigBytes), nil
-	case "PUT":
+	case util.Put:
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
-			return nil, errors.New("failed to convert to appRule to bytes")
+			return nil, errors.New(util.MarshaAppRuleModelError)
 		}
 
 		return CreateRestClient(url, method, appRuleConfigBytes), nil
-	case "GET":
+	case util.Get:
 		return CreateRestClient(url, method, nil), nil
-	case "DELETE":
+	case util.Delete:
 		return CreateRestClient(url, method, nil), nil
 	default:
-		return nil, errors.New("unknown rest method")
+		return nil, errors.New(util.UnknownRestMethod)
 	}
 }

@@ -61,13 +61,13 @@ type OperationProgressModel struct {
 	AppInstanceId string `json:appInstanceId`
 	ConfigResult  string `json:configResult`
 	ConfigPhase   string `json:configPhase`
-	detailed      string `json:detailed`
+	Detailed      string `json:detailed`
 }
 
 // Represents operation failure model
 type OperationFailureModel struct {
 	Type   string `json:"type"`
 	Title  string `json:"title"`
-	Status string `json:"status"`
+	Status int    `json:"status"`
 	Detail string `json:"detail"`
 }
