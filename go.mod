@@ -17,7 +17,9 @@ module mecm-apprulemgr
 go 1.14
 
 require (
+	github.com/agiledragon/gomonkey v2.0.1+incompatible
 	github.com/astaxie/beego v1.12.3
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/sirupsen/logrus v1.7.0

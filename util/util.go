@@ -21,12 +21,20 @@ import (
 	"crypto/x509"
 	"errors"
 	"github.com/astaxie/beego"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"mecm-apprulemgr/models"
 	"net/http"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
+)
+
+var (
+	jwtPublicKey = os.Getenv("JWT_PUBLIC_KEY")
 )
 
 const (
@@ -35,18 +43,54 @@ const (
 	MaxBackups int = 50
 	MaxAge         = 30
 
-	// input validations related constants
-	BadRequest             int = 400
-	ClientIpaddressInvalid     = "client ip address is invalid"
+	// Rest method
+	Post   = "POST"
+	Get    = "GET"
+	Put    = "PUT"
+	Delete = "Delete"
 
+	// config result
+	Success = "SUCCESS"
+	Failure = "FAILURE"
+
+	// default retry limit and interval
+	DefaultRetryLimit    int = 30
+	DefaultRetryInterval int = 2
+
+	// error code
+	BadRequest          int = 400
+	StatusUnauthorized  int = 401
+	InternalServerError int = 500
+
+	// error messages
+	ClientIpaddressInvalid    = "client ip address is invalid"
+	MarshalProgressModelError = "failed to marshal progress model"
+	MarshalFailureModelError  = "failed to marshal failure model"
+	MarshaAppRuleModelError   = "failed to marshal app rule model"
+	UnknownRestMethod         = "unknown rest method"
+	ErrorFromMep              = "error response from mep"
+
+	// log messages
+	AppRuleConfigSuccess = "app rule configured successfully"
+	AppRuleConfigFailed  = "app rule configuration failed"
+	AppRuleConfigTimeout = "app rule configuration timeout"
+
+	// app related constants
 	AppInstanceId string = ":appInstanceId"
+	TenantId      string = ":tenantId"
 
-	MepAddress        = "MEP_ADDR"
-	MepPort           = "MEP_PORT"
+	MepAddress        = "MEP_SERVER_ADDR"
+	MepPort           = "MEP_SERVER_PORT"
 	DefaultMepAddress = "edgegallery"
-	DefaultMepPort    = "8444"
+	DefaultMepPort    = "80"
 
-	HttpsUrl string = "https://"
+	// rest related constants
+	HttpsUrl            string = "https://"
+	AccessToken         string = "access_token"
+	AuthorizationFailed string = "Authorization failed"
+	MecmTenantRole             = "ROLE_MECM_TENANT"
+	MecmGuestRole              = "ROLE_MECM_GUEST"
+	InvalidToken        string = "invalid token"
 )
 
 var cipherSuiteMap = map[string]uint16{
@@ -145,11 +189,31 @@ func GetMepPort() string {
 	return mepPort
 }
 
+// Get retry interval
+func GetRetryInterval() int {
+	retryInterval := GetAppConfig("retryInterval")
+	i, err := strconv.Atoi(retryInterval)
+	if err != nil {
+		i = DefaultRetryInterval
+	}
+	return i
+}
+
+// Get retry limit
+func GetRetryLimit() int {
+	retryLimit := GetAppConfig("retryLimit")
+	i, err := strconv.Atoi(retryLimit)
+	if err != nil {
+		i = DefaultRetryLimit
+	}
+	return i
+}
+
 // Does https request
 func DoRequest(req *http.Request) (*http.Response, error) {
-	config, err := TLSConfig("DB_SSL_ROOT_CERT")
+	config, err := TLSConfig("SSL_ROOT_CERT")
 	if err != nil {
-		log.Error("Unable to send request")
+		log.Error("unable to send request")
 		return nil, err
 	}
 
@@ -163,14 +227,130 @@ func DoRequest(req *http.Request) (*http.Response, error) {
 
 // Creates appd Rule url
 func CreateAppdRuleUrl(appInstanceId string) string {
-	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/app_lcm/v1/applications/" +
+	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/mepcfg/app_lcm/v1/applications/" +
 		appInstanceId + "/appd_configuration"
 	return url
 }
 
 // Creates task query URL
 func CreateTaskQueryUrl(taskId string) string {
-	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/app_lcm/v1/tasks/" +
+	url := HttpsUrl + GetMepAddr() + ":" + GetMepPort() + "/mepcfg/app_lcm/v1/tasks/" +
 		taskId + "/appd_configuration"
 	return url
+}
+
+// Validate access token
+func ValidateAccessToken(accessToken string, allowedRoles []string) error {
+	if accessToken == "" {
+		return errors.New("require token")
+	}
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(accessToken, claims, func(_ *jwt.Token) (interface{}, error) {
+		return jwtPublicKey, nil
+	})
+
+	if token != nil && !token.Valid {
+		err := validateTokenClaims(claims, allowedRoles)
+		if err != nil {
+			return err
+		}
+	} else if er, ok := err.(*jwt.ValidationError); ok {
+		if er.Errors&jwt.ValidationErrorMalformed != 0 {
+			log.Info("Invalid token")
+			return errors.New(InvalidToken)
+		} else if er.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			log.Infof("token expired or inactive")
+			return errors.New("token expired or inactive")
+		} else {
+			log.Info("Couldn't handle this token: ", err)
+			return errors.New(err.Error())
+		}
+	} else {
+		log.Info("Couldn't handle this token: ", err)
+		return errors.New(err.Error())
+	}
+
+	log.Info("Token validated successfully")
+	return nil
+}
+
+// Validate token claims
+func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string) error {
+	if claims["authorities"] == nil {
+		log.Info("Invalid token A")
+		return errors.New(InvalidToken)
+	}
+
+	err := ValidateRole(claims, allowedRoles)
+	if err != nil {
+		return err
+	}
+
+	if claims["userId"] == nil {
+		log.Info("Invalid token UI")
+		return errors.New(InvalidToken)
+	}
+	if claims["user_name"] == nil {
+		log.Info("Invalid token UN")
+		return errors.New(InvalidToken)
+	}
+	err = claims.Valid()
+	if err != nil {
+		log.Info("token expired")
+		return errors.New(InvalidToken)
+	}
+	return nil
+}
+
+func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
+	roleName := "defaultRole"
+	log.Info(roleName)
+
+	for key, value := range claims {
+		if key == "authorities" {
+			authorities := value.([]interface{})
+			arr := reflect.ValueOf(authorities)
+			for i := 0; i < arr.Len(); i++ {
+				if arr.Index(i).Interface() == MecmTenantRole {
+					roleName = MecmTenantRole
+					break
+				} else if arr.Index(i).Interface() == MecmGuestRole {
+					roleName = MecmGuestRole
+					break
+				}
+			}
+			if !isRoleAllowed(roleName, allowedRoles) {
+				log.Info("Invalid token A")
+				return errors.New(InvalidToken)
+			}
+		}
+	}
+	return nil
+}
+
+func isRoleAllowed(actual string, allowed []string) bool {
+	for _, v := range allowed {
+		if v == actual {
+			return true
+		}
+	}
+	return false
+}
+
+// Creates failure model
+func CreateOperationFailureModel(progressModel *models.OperationProgressModel) *models.OperationFailureModel {
+	return &models.OperationFailureModel{
+		Type:   progressModel.ConfigResult,
+		Title:  "config failed",
+		Status: 1,
+		Detail: progressModel.Detailed,
+	}
+}
+
+// Clear byte array from memory
+func ClearByteArray(data []byte) {
+	for i := 0; i < len(data); i++ {
+		data[i] = 0
+	}
 }

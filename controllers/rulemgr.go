@@ -23,6 +23,7 @@ import (
 	"mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
 	"net/http"
+	"unsafe"
 )
 
 // Application Rule Controller
@@ -46,32 +47,43 @@ func (c *AppRuleController) CreateAppRuleConfig() {
 	}
 	c.displayReceivedMsg(clientIp)
 
+	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		return
+	}
+	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
+	util.ClearByteArray(bKey)
+
 	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	log.Info("tenantId", tenantId)
 	// TODO: validate appinstance id
 
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+		c.handleLoggingForError(clientIp, util.BadRequest, err.Error())
 		return
 	}
 
-	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "POST", appRuleConfig)
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Post, appRuleConfig)
 	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
-	request := createAppRuleConfig(restClient)
-	response, err := request.handleAppRuleRequest()
+	appRuleFacade := createAppRuleFacade(restClient)
+	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
 	if response.code == http.StatusOK {
 		progressModelBytes, err := json.Marshal(response.progressModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
 			return
 		}
 
@@ -79,7 +91,7 @@ func (c *AppRuleController) CreateAppRuleConfig() {
 	} else {
 		failureModelBytes, err := json.Marshal(response.failureModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
 			return
 		}
 
@@ -98,32 +110,43 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 	}
 	c.displayReceivedMsg(clientIp)
 
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		return
+	}
+	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
+	util.ClearByteArray(bKey)
 
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	log.Info("tenantId", tenantId)
 	// TODO: validate appinstance id
+
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+		c.handleLoggingForError(clientIp, util.BadRequest, err.Error())
 		return
 	}
 
-	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "PUT", appRuleConfig)
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Put, appRuleConfig)
 	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
-	request := createAppRuleConfig(restClient)
-	response, err := request.handleAppRuleRequest()
+	appRuleFacade := createAppRuleFacade(restClient)
+	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
 	if response.code == http.StatusOK {
 		progressModelBytes, err := json.Marshal(response.progressModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
 			return
 		}
 
@@ -131,7 +154,7 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 	} else {
 		failureModelBytes, err := json.Marshal(response.failureModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
 			return
 		}
 
@@ -150,32 +173,37 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	}
 	c.displayReceivedMsg(clientIp)
 
+	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		return
+	}
+	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
+	util.ClearByteArray(bKey)
+
 	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	log.Info("tenantId", tenantId)
 	// TODO: validate appinstance id
 
-	var appRuleConfig *models.AppdRule
-	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, "Bad request")
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Delete, nil)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
-	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), "DELETE", appRuleConfig)
+	appRuleFacade := createAppRuleFacade(restClient)
+	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
-		return
-	}
-
-	request := createAppRuleConfig(restClient)
-	response, err := request.handleAppRuleRequest()
-	if err != nil {
-		c.handleLoggingForError(clientIp, 500, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
 		return
 	}
 
 	if response.code == http.StatusOK {
 		progressModelBytes, err := json.Marshal(response.progressModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert progress model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
 			return
 		}
 
@@ -183,7 +211,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	} else {
 		failureModelBytes, err := json.Marshal(response.failureModel)
 		if err != nil {
-			c.handleLoggingForError(clientIp, 500, "failed to convert failure model to bytes")
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
 			return
 		}
 

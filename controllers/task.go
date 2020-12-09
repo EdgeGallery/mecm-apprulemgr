@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"errors"
+	log "github.com/sirupsen/logrus"
+	"mecm-apprulemgr/util"
 	"net/http"
 	"time"
 )
@@ -34,8 +36,8 @@ type TaskInfo struct {
 func createTaskInfo(id string, restClient *RestClient) *TaskInfo {
 	return &TaskInfo{
 		taskId:        id,
-		retryLimit:    10,
-		retryInterval: 2,
+		retryLimit:    util.GetRetryLimit(),
+		retryInterval: util.GetRetryInterval(),
 		restClient:    restClient,
 	}
 }
@@ -55,21 +57,25 @@ func (t *TaskInfo) handleTaskQuery() (*Response, error) {
 		}
 
 		if response.code == http.StatusOK {
-			if response.progressModel.ConfigResult == "SUCCESS" ||
-				response.progressModel.ConfigResult == "FAILURE" {
+			if response.progressModel.ConfigResult == util.Success {
+				log.Info(util.AppRuleConfigSuccess)
 				return response, nil
+			} else if response.progressModel.ConfigResult == util.Failure {
+				log.Info(util.AppRuleConfigFailed)
+				return createFailureResponse(http.StatusInternalServerError, util.CreateOperationFailureModel(response.
+					progressModel)), nil
 			}
-
+			log.Info("Percentage of progress of operation ", response.progressModel.ConfigPhase)
 			time.Sleep(time.Duration(t.retryInterval) * time.Second)
 			continue
 		} else if response.code == http.StatusBadRequest ||
 			response.code == http.StatusForbidden ||
 			response.code == http.StatusNotFound {
-			response.code = http.StatusInternalServerError
 			return response, nil
 		}
-		return nil, errors.New("error response from mep")
+		log.Info("error response from mep", response.code)
+		return nil, errors.New(util.ErrorFromMep)
 	}
 
-	return nil, errors.New("app rule config operation timeout")
+	return nil, errors.New(util.AppRuleConfigTimeout)
 }
