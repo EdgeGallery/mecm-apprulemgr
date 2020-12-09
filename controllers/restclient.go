@@ -125,3 +125,27 @@ func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response
 	return createResponse(httpResponse.StatusCode,
 		util.CreateOperationProgressModel(appInstanceId, util.Failure, operationFailureModel.Detail)), nil
 }
+
+// Parses get response from mep
+func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Response, error) {
+	mepResponse, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		log.Info("failed to read mep response body")
+		return nil, err
+	}
+
+	if httpResponse.StatusCode == http.StatusOK {
+		var appRuleModel *models.AppdRule
+		if err = json.Unmarshal(mepResponse, &appRuleModel); err != nil {
+			return nil, err
+		}
+		return createGetResponse(httpResponse.StatusCode, appRuleModel), nil
+	}
+
+	var operationFailureModel *models.OperationFailureModel
+	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
+		return nil, err
+	}
+	return createResponse(httpResponse.StatusCode, util.CreateOperationProgressModel(appInstanceId,
+		util.Failure, operationFailureModel.Detail)), nil
+}

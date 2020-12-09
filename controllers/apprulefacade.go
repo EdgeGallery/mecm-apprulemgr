@@ -71,6 +71,21 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 	return task.handleTaskQuery()
 }
 
+// Sends app rule get request to mep
+func (a *AppRuleFacade) handleAppRuleGetRequest() (*Response, error) {
+	httpResponse, err := a.restClient.sendRequest()
+	if err != nil {
+		return nil, err
+	}
+	defer httpResponse.Body.Close()
+
+	response, err := parseGetResponse(httpResponse, a.appInstanceId)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 // Creates new rest client based on method
 func createRestClient(url string, method string, rule *models.AppdRule) (*RestClient, error) {
 	switch method {

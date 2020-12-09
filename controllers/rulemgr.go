@@ -22,6 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
+	"net/http"
 	"unsafe"
 )
 
@@ -177,6 +178,63 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
 		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
+	}
+	c.writeResponse(progressModelBytes, response.code)
+}
+
+// Returns app rule configuration
+func (c *AppRuleController) GetAppRuleConfig() {
+	log.Info("Application Rule Config get request received.")
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+
+	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		return
+	}
+	c.displayReceivedMsg(clientIp)
+
+	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		return
+	}
+	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
+	util.ClearByteArray(bKey)
+
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	log.Info("tenantId", tenantId)
+	// TODO: validate appinstance id
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Get, nil)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
+	response, err := appRuleFacade.handleAppRuleGetRequest()
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	if response.code == http.StatusOK {
+		appRuleModelBytes, err := json.Marshal(response.appdrule)
+		if err != nil {
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalAppRuleModelError, appInstanceId)
+			return
+		}
+		c.writeResponse(appRuleModelBytes, response.code)
 		return
 	}
 
