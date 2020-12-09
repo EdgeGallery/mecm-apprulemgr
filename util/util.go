@@ -47,7 +47,7 @@ const (
 	Post   = "POST"
 	Get    = "GET"
 	Put    = "PUT"
-	Delete = "Delete"
+	Delete = "DELETE"
 
 	// config result
 	Success = "SUCCESS"
