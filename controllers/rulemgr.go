@@ -52,7 +52,7 @@ func (c *AppRuleController) CreateAppRuleConfig() {
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
 		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
@@ -104,7 +104,7 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
 		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
@@ -156,7 +156,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
 		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
