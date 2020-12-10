@@ -18,8 +18,8 @@ package controllers
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"mecm-apprulemgr/util"

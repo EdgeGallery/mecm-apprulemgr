@@ -21,40 +21,40 @@ type SampleStruct struct {
 }
 
 type AppdRule struct {
-	AppTrafficRule []AppTrafficRule `json:"appTrafficRule"`
-	AppDnsRule     []AppDnsRule     `json:"appDnsRule"`
-	AppName        string           `json:"appName"`
-	AppSupportMp1  bool             `json:"appSupportMp1"`
+	AppTrafficRule []AppTrafficRule `json:"appTrafficRule" validate:"min=0,dive,max=16" `
+	AppDnsRule     []AppDnsRule     `json:"appDnsRule" validate:"min=0,dive,max=32" `
+	AppName        string           `json:"appName" validate:"required,max=128,validateName"`
+	AppSupportMp1  bool             `json:"appSupportMp1,omitempty"`
 }
 
 // Represents traffic rule model
 type AppTrafficRule struct {
-	TrafficRuleId    string          `json:"trafficRuleId"`
-	FilterType       string          `json:"filterType"`
-	Priority         int             `json:"priority"`
-	Action           string          `json:"action"`
-	AppTrafficFilter []TrafficFilter `json:"trafficFilter"`
+	TrafficRuleId    string          `json:"trafficRuleId" validate:"required,max=128"`
+	FilterType       string          `json:"filterType" validate:"required,oneof=FLOW PACKET"`
+	Priority         int             `json:"priority" validate:"required,gt=0,max=255"`
+	Action           string          `json:"action" validate:"required,oneof=DROP PASSTHROUGH"`
+	AppTrafficFilter []TrafficFilter `json:"trafficFilter" validate:"required,dive"`
 }
 
 // Represents dns rule model
 type AppDnsRule struct {
-	DnsRuleId     string `json:"dnsRuleId"`
-	DomainName    string `json:"domainName"`
-	IpAddressType string `json:"ipAddressType"`
-	IpAddress     string `json:"ipAddress"`
-	TTL           int    `json:"ttl"`
+	DnsRuleId     string `json:"dnsRuleId" validate:"required,max=128"`
+	DomainName    string `json:"domainName" validate:"required,max=128"`
+	IpAddressType string `json:"ipAddressType" validate:"required,oneof=IP_V4 IP_V6"`
+	IpAddress     string `json:"ipAddress" validate:"required,ip_addr"`
+	TTL           int    `json:"ttl" validate:"omitempty,gte=0,max=4294967295"`
 }
 
 // Represents traffic filter model
 type TrafficFilter struct {
-	SrcAddress []string `json:"srcAddress"`
-	SrcPort    []string `json:"srcPort"`
-	DstAddress []string `json:"dstAddress"`
-	DstPort    []string `json:"dstPort"`
-	Protocol   []string `json:"protocol"`
-	Qci        int      `json:"qCI"`
-	Dscp       int      `json:"dSCP"`
-	Tc         int      `json:"tC"`
+	SrcAddress []string `json:"srcAddress" validate:"omitempty,dive,cidr"`
+	SrcPort    []string `json:"srcPort" validate:"omitempty,dive,gt=0,lte=65535"`
+	DstAddress []string `json:"dstAddress" validate:"omitempty,dive,cidr"`
+	DstPort    []string `json:"dstPort" validate:"omitempty,dive,gt=0,lte=65535"`
+	Protocol   []string `json:"protocol" validate:"omitempty,dive,validateProtocol"`
+	Qci        int      `json:"qCI" validate:"omitempty"`
+	Dscp       int      `json:"dSCP" validate:"omitempty"`
+	Tc         int      `json:"tC" validate:"omitempty"`
 }
 
 // Represents operation progress model

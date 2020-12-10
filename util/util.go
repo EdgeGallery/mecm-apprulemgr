@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -63,13 +64,15 @@ const (
 	InternalServerError int = 500
 
 	// error messages
-	ClientIpaddressInvalid    = "client ip address is invalid"
-	MarshalProgressModelError = "failed to marshal progress model"
-	MarshalAppRuleModelError  = "failed to marshal app rule model"
-	UnknownRestMethod         = "unknown rest method"
-	FailedToWriteRes          = "failed to write response into context"
-	AppInstanceIdInvalid      = "app instance id is invalid"
-	TenantIdInvalid           = "tenant id is invalid"
+	ClientIpaddressInvalid     = "client ip address is invalid"
+	MarshalProgressModelError  = "failed to marshal progress model"
+	MarshalAppRuleModelError   = "failed to marshal app rule model"
+	UnMarshalAppRuleModelError = "failed to unmarshal app rule model"
+	UnknownRestMethod          = "unknown rest method"
+	FailedToWriteRes           = "failed to write response into context"
+	AppInstanceIdInvalid       = "app instance id is invalid"
+	TenantIdInvalid            = "tenant id is invalid"
+	RequestBodyTooLarge        = "request body too large"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -88,10 +91,11 @@ const (
 	// rest related constants
 	HttpsUrl            string = "https://"
 	AccessToken         string = "access_token"
-	AuthorizationFailed string = "Authorization failed"
+	AuthorizationFailed string = "authorization failed"
 	MecmTenantRole      string = "ROLE_MECM_TENANT"
 	MecmGuestRole       string = "ROLE_MECM_GUEST"
 	InvalidToken        string = "invalid token"
+	RequestBodyLength          = 4096
 )
 
 var cipherSuiteMap = map[string]uint16{
@@ -369,6 +373,53 @@ func ValidateUUID(id string) error {
 		}
 	} else {
 		return errors.New("UUID validate failed")
+	}
+	return nil
+}
+
+// validate by reg
+func ValidateRegexp(strToCheck string, regexStr string, errMsg string) error {
+	match, err := regexp.MatchString(regexStr, strToCheck)
+	if err != nil {
+		return err
+	}
+	if !match {
+		return errors.New(errMsg)
+	}
+	return nil
+}
+
+func validateProtocol(fl validator.FieldLevel) bool {
+	err := ValidateRegexp(fl.Field().String(), "^[a-zA-Z0-9]*$|^[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]*[a-zA-Z0-9]$",
+		"protocol validation failed")
+	return err == nil
+}
+
+func validateName(fl validator.FieldLevel) bool {
+	err := ValidateRegexp(fl.Field().String(), "^[a-zA-Z0-9]*$|^[a-zA-Z0-9][a-zA-Z0-9_\\-]*[a-zA-Z0-9]$",
+		"name validation failed")
+	return err == nil
+}
+
+// validate rest body
+func ValidateRestBody(body interface{}) error {
+	validate := validator.New()
+	verrs := validate.RegisterValidation("validateName", validateName)
+	if verrs != nil {
+		return verrs
+	}
+	verrs = validate.RegisterValidation("validateProtocol", validateProtocol)
+	if verrs != nil {
+		return verrs
+	}
+	verrs = validate.Struct(body)
+	if verrs != nil {
+		for _, verr := range verrs.(validator.ValidationErrors) {
+			log.Debugf("Namespace=%s, Field=%s, StructField=%s, Tag=%s, Kind =%s, Type=%s, Value=%s",
+				verr.Namespace(), verr.Field(), verr.StructField(), verr.Tag(), verr.Kind(), verr.Type(),
+				verr.Value())
+		}
+		return verrs
 	}
 	return nil
 }
