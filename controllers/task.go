@@ -25,25 +25,27 @@ import (
 )
 
 // Represents taskInfo model
-type TaskInfo struct {
+type Task struct {
 	taskId        string
 	retryInterval int
 	retryLimit    int
 	restClient    iRestClient
+	appInstanceId string
 }
 
 // Creates new Task info
-func createTaskInfo(id string, restClient *RestClient) *TaskInfo {
-	return &TaskInfo{
+func createTask(id string, restClient *RestClient, appInstanceId string) *Task {
+	return &Task {
 		taskId:        id,
 		retryLimit:    util.GetRetryLimit(),
 		retryInterval: util.GetRetryInterval(),
 		restClient:    restClient,
+		appInstanceId: appInstanceId,
 	}
 }
 
 // Sends task query request and mep for specific interval
-func (t *TaskInfo) handleTaskQuery() (*Response, error) {
+func (t *Task) handleTaskQuery() (*Response, error) {
 	for i := 0; i < t.retryLimit; i++ {
 		httpResponse, err := t.restClient.sendRequest()
 		if err != nil {
@@ -51,30 +53,26 @@ func (t *TaskInfo) handleTaskQuery() (*Response, error) {
 		}
 		defer httpResponse.Body.Close()
 
-		response, err := parseResponse(httpResponse)
+		response, err := parseResponse(httpResponse, t.appInstanceId)
 		if err != nil {
 			return nil, err
 		}
 
-		if response.code == http.StatusOK {
-			if response.progressModel.ConfigResult == util.Success {
-				log.Info(util.AppRuleConfigSuccess)
-				return response, nil
-			} else if response.progressModel.ConfigResult == util.Failure {
-				log.Info(util.AppRuleConfigFailed)
-				return createFailureResponse(http.StatusInternalServerError, util.CreateOperationFailureModel(response.
-					progressModel)), nil
-			}
-			log.Info("Percentage of progress of operation ", response.progressModel.ConfigPhase)
-			time.Sleep(time.Duration(t.retryInterval) * time.Second)
-			continue
-		} else if response.code == http.StatusBadRequest ||
-			response.code == http.StatusForbidden ||
-			response.code == http.StatusNotFound {
+		if response.code != http.StatusOK {
 			return response, nil
 		}
-		log.Info("error response from mep", response.code)
-		return nil, errors.New(util.ErrorFromMep)
+
+		if response.progressModel.ConfigResult == util.Success {
+			log.Info(util.AppRuleConfigSuccess)
+			return response, nil
+		} else if response.progressModel.ConfigResult == util.Failure {
+			log.Info(util.AppRuleConfigFailed)
+			response.code = util.InternalServerError
+			return response, nil
+		}
+
+		log.Info("percentage of progress of operation ", response.progressModel.ConfigPhase)
+		time.Sleep(time.Duration(t.retryInterval) * time.Second)
 	}
 
 	return nil, errors.New(util.AppRuleConfigTimeout)

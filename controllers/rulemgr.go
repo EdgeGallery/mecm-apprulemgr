@@ -39,204 +39,239 @@ func (c *AppRuleController) HealthCheck() {
 // Configures app rule
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
+
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	// TODO : validate APP instance ID
+
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
 		return
 	}
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 	tenantId := c.Ctx.Input.Param(util.TenantId)
+	// TODO: validate tenant id
 	log.Info("tenantId", tenantId)
-	// TODO: validate appinstance id
 
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, err.Error())
+		c.handleLoggingForError(clientIp, util.BadRequest, err.Error(), appInstanceId)
 		return
 	}
 
 	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Post, appRuleConfig)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
-	appRuleFacade := createAppRuleFacade(restClient)
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
 	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
-	if response.code == http.StatusOK {
-		progressModelBytes, err := json.Marshal(response.progressModel)
-		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
-			return
-		}
-
-		c.writeResponse(string(progressModelBytes), response.code)
-	} else {
-		failureModelBytes, err := json.Marshal(response.failureModel)
-		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
-			return
-		}
-
-		c.writeResponse(string(failureModelBytes), response.code)
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
 	}
+	c.writeResponse(progressModelBytes, response.code)
 }
 
 // Updates app rule configuration
 func (c *AppRuleController) UpdateAppRuleConfig() {
 	log.Info("Application Rule Config update request received.")
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
 		return
 	}
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 	tenantId := c.Ctx.Input.Param(util.TenantId)
 	log.Info("tenantId", tenantId)
 	// TODO: validate appinstance id
 
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, err.Error())
+		c.handleLoggingForError(clientIp, util.BadRequest, err.Error(), appInstanceId)
 		return
 	}
 
 	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Put, appRuleConfig)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
-	appRuleFacade := createAppRuleFacade(restClient)
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
 	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
-	if response.code == http.StatusOK {
-		progressModelBytes, err := json.Marshal(response.progressModel)
-		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
-			return
-		}
-
-		c.writeResponse(string(progressModelBytes), response.code)
-	} else {
-		failureModelBytes, err := json.Marshal(response.failureModel)
-		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
-			return
-		}
-
-		c.writeResponse(string(failureModelBytes), response.code)
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
 	}
+	c.writeResponse(progressModelBytes, response.code)
 }
 
 // Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
 		return
 	}
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 	tenantId := c.Ctx.Input.Param(util.TenantId)
 	log.Info("tenantId", tenantId)
 	// TODO: validate appinstance id
 
 	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Delete, nil)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
-	appRuleFacade := createAppRuleFacade(restClient)
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
 	response, err := appRuleFacade.handleAppRuleRequest()
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error())
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
+	}
+	c.writeResponse(progressModelBytes, response.code)
+}
+
+// Returns app rule configuration
+func (c *AppRuleController) GetAppRuleConfig() {
+	log.Info("Application Rule Config get request received.")
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+
+	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		return
+	}
+	c.displayReceivedMsg(clientIp)
+
+	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		return
+	}
+	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
+	util.ClearByteArray(bKey)
+
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	log.Info("tenantId", tenantId)
+	// TODO: validate appinstance id
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Get, nil)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
+	response, err := appRuleFacade.handleAppRuleGetRequest()
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, err.Error(), appInstanceId)
 		return
 	}
 
 	if response.code == http.StatusOK {
-		progressModelBytes, err := json.Marshal(response.progressModel)
+		appRuleModelBytes, err := json.Marshal(response.appdrule)
 		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError)
+			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalAppRuleModelError, appInstanceId)
 			return
 		}
-
-		c.writeResponse(string(progressModelBytes), response.code)
-	} else {
-		failureModelBytes, err := json.Marshal(response.failureModel)
-		if err != nil {
-			c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalFailureModelError)
-			return
-		}
-
-		c.writeResponse(string(failureModelBytes), response.code)
+		c.writeResponse(appRuleModelBytes, response.code)
+		return
 	}
+
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
+	}
+	c.writeResponse(progressModelBytes, response.code)
 }
 
 // Handled logging for error case
-func (c *AppRuleController) handleLoggingForError(clientIp string, code int, errMsg string) {
-	c.writeErrorResponse(errMsg, code)
+func (c *AppRuleController) handleLoggingForError(clientIp string, code int, errMsg string, appInstanceId string) {
+	c.writeErrorResponse(errMsg, code, appInstanceId)
 	log.Info("Response message for ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
-		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
+		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + "Status code: " + string(code) + ".]")
 }
 
 // Write error response
-func (c *AppRuleController) writeErrorResponse(errMsg string, code int) {
+func (c *AppRuleController) writeErrorResponse(errMsg string, code int, appInstanceId string) {
+	progressModel := util.CreateOperationProgressModel(appInstanceId, util.Failure, errMsg)
+	progressModelBytes, err := json.Marshal(progressModel)
+	if err != nil {
+		log.Error(util.MarshalProgressModelError)
+		return
+	}
 	log.Error(errMsg)
-	c.writeResponse(errMsg, code)
+	c.writeResponse(progressModelBytes, code)
 }
 
 // Write response
-func (c *AppRuleController) writeResponse(msg string, code int) {
-	c.Data["json"] = msg
-	c.Ctx.ResponseWriter.WriteHeader(code)
-	c.ServeJSON()
+func (c *AppRuleController) writeResponse(msg []byte, code int) {
+	c.Ctx.Output.SetStatus(code)
+	err := c.Ctx.Output.Body(msg)
+	if err != nil {
+		log.Error(util.FailedToWriteRes)
+	}
 }
 
 // To display log for received message

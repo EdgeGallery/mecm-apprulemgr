@@ -23,6 +23,8 @@ type SampleStruct struct {
 type AppdRule struct {
 	AppTrafficRule []AppTrafficRule `json:"appTrafficRule"`
 	AppDnsRule     []AppDnsRule     `json:"appDnsRule"`
+	AppName        string           `json:"appName"`
+	AppSupportMp1  bool             `json:"appSupportMp1"`
 }
 
 // Represents traffic rule model
@@ -52,16 +54,16 @@ type TrafficFilter struct {
 	Protocol   []string `json:"protocol"`
 	Qci        int      `json:"qCI"`
 	Dscp       int      `json:"dSCP"`
-	tc         int      `json:"tC"`
+	Tc         int      `json:"tC"`
 }
 
 // Represents operation progress model
 type OperationProgressModel struct {
 	TaskId        string `json:"taskId"`
-	AppInstanceId string `json:appInstanceId`
-	ConfigResult  string `json:configResult`
-	ConfigPhase   string `json:configPhase`
-	Detailed      string `json:detailed`
+	AppInstanceId string `json:"appInstanceId"`
+	ConfigResult  string `json:"configResult"`
+	ConfigPhase   string `json:"configPhase"`
+	Detailed      string `json:"detailed"`
 }
 
 // Represents operation failure model

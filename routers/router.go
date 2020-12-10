@@ -30,7 +30,9 @@ func init() {
 	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
 		"post:CreateAppRuleConfig")
 	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"post:UpdateAppRuleConfig")
+		"put:UpdateAppRuleConfig")
 	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"post:DeleteAppRuleConfig")
+		"delete:DeleteAppRuleConfig")
+	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
+		"get:GetAppRuleConfig")
 }
