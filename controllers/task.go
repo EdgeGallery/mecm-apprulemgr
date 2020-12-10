@@ -35,7 +35,7 @@ type Task struct {
 
 // Creates new Task info
 func createTask(id string, restClient *RestClient, appInstanceId string) *Task {
-	return &Task {
+	return &Task{
 		taskId:        id,
 		retryLimit:    util.GetRetryLimit(),
 		retryInterval: util.GetRetryInterval(),
@@ -71,7 +71,6 @@ func (t *Task) handleTaskQuery() (*Response, error) {
 			return response, nil
 		}
 
-		log.Info("percentage of progress of operation ", response.progressModel.ConfigPhase)
 		time.Sleep(time.Duration(t.retryInterval) * time.Second)
 	}
 

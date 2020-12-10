@@ -40,13 +40,10 @@ func (c *AppRuleController) HealthCheck() {
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
 
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
-	// TODO : validate APP instance ID
-
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, "")
 		return
 	}
 	c.displayReceivedMsg(clientIp)
@@ -54,15 +51,25 @@ func (c *AppRuleController) CreateAppRuleConfig() {
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
 	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, "")
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	err = util.ValidateUUID(appInstanceId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.AppInstanceId, appInstanceId)
+		return
+	}
+
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	// TODO: validate tenant id
-	log.Info("tenantId", tenantId)
+	err = util.ValidateUUID(tenantId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.TenantIdInvalid, appInstanceId)
+		return
+	}
 
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
@@ -94,11 +101,11 @@ func (c *AppRuleController) CreateAppRuleConfig() {
 // Updates app rule configuration
 func (c *AppRuleController) UpdateAppRuleConfig() {
 	log.Info("Application Rule Config update request received.")
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, "")
 		return
 	}
 	c.displayReceivedMsg(clientIp)
@@ -106,15 +113,25 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
 	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, "")
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	err = util.ValidateUUID(appInstanceId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.AppInstanceId, appInstanceId)
+		return
+	}
+
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	log.Info("tenantId", tenantId)
-	// TODO: validate appinstance id
+	err = util.ValidateUUID(tenantId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.TenantIdInvalid, appInstanceId)
+		return
+	}
 
 	var appRuleConfig *models.AppdRule
 	if err = json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
@@ -146,11 +163,11 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 // Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, "")
 		return
 	}
 	c.displayReceivedMsg(clientIp)
@@ -158,15 +175,25 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
 	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, "")
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	err = util.ValidateUUID(appInstanceId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.AppInstanceId, appInstanceId)
+		return
+	}
+
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	log.Info("tenantId", tenantId)
-	// TODO: validate appinstance id
+	err = util.ValidateUUID(tenantId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.TenantIdInvalid, appInstanceId)
+		return
+	}
 
 	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Delete, nil)
 	if err != nil {
@@ -192,28 +219,37 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 // Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
 
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, appInstanceId)
+		c.handleLoggingForError(clientIp, util.BadRequest, util.ClientIpaddressInvalid, "")
 		return
 	}
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole, util.MecmGuestRole})
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
 	if err != nil {
-		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, appInstanceId)
+		c.handleLoggingForError(clientIp, util.StatusUnauthorized, util.AuthorizationFailed, "")
 		return
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
 
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	err = util.ValidateUUID(appInstanceId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.AppInstanceId, appInstanceId)
+		return
+	}
+
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	log.Info("tenantId", tenantId)
-	// TODO: validate appinstance id
+	err = util.ValidateUUID(tenantId)
+	if err != nil {
+		c.handleLoggingForError(clientIp, util.BadRequest, util.TenantIdInvalid, appInstanceId)
+		return
+	}
 
 	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Get, nil)
 	if err != nil {

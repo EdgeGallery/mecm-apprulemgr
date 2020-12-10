@@ -68,6 +68,8 @@ const (
 	MarshalAppRuleModelError  = "failed to marshal app rule model"
 	UnknownRestMethod         = "unknown rest method"
 	FailedToWriteRes          = "failed to write response into context"
+	AppInstanceIdInvalid      = "app instance id is invalid"
+	TenantIdInvalid           = "tenant id is invalid"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -352,4 +354,21 @@ func ClearByteArray(data []byte) {
 	for i := 0; i < len(data); i++ {
 		data[i] = 0
 	}
+}
+
+// Validate UUID
+func ValidateUUID(id string) error {
+	if id == "" {
+		return errors.New("require app instance id")
+	}
+	if len(id) != 0 {
+		validate := validator.New()
+		res := validate.Var(id, "required,uuid")
+		if res != nil {
+			return errors.New("UUID validate failed")
+		}
+	} else {
+		return errors.New("UUID validate failed")
+	}
+	return nil
 }
