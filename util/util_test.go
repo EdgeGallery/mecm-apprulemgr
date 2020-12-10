@@ -17,8 +17,10 @@
 package util
 
 import (
+	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
+	"mecm-apprulemgr/models"
 	"testing"
 	"time"
 )
@@ -113,4 +115,198 @@ func TestGetCipherSuites(t *testing.T) {
 func TestGetAppConfig(_ *testing.T) {
 	appConfig := "appConfig"
 	GetAppConfig(appConfig)
+}
+
+func TestValidateRestBody(t *testing.T) {
+	const (
+		invalidFilterType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"LOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		invalidPriority = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 0,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		invalidAddressType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		invalidAppName = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"_abcd\"}"
+		invalidAction = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DOP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		ipv6Address = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"2001:0db8:85a3:0000:0000:8a2e:0370:7334\", \"ttl\": 30," +
+			"\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		ipv4Addresss = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"256.256.256.256\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		invalidAddress = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"2001:0db8:85a3:0000:0000:8a2e:0370:7334:3445\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		invalidProtocol = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"_TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		missingMandatoryParam = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true}"
+		invalidSourceAddress = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd\"}"
+		unMarshalAppRuleError = "failed to create appdrule model"
+	)
+
+	t.Run("TestInvalidFilterType", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidFilterType), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidPriority", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidPriority), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidAddressType", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidAddressType), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidAppName", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidAppName), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidAction", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidAction), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestIpv6address", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(ipv6Address), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Nil(t, err)
+	})
+
+	t.Run("TestIpv4address", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(ipv4Addresss), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidAddress", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidAddress), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestMissingMandatoryParam", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(missingMandatoryParam), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidProtocol", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidProtocol), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
+
+	t.Run("TestInvalidSrcAddress", func(t *testing.T) {
+		var appRuleConfig *models.AppdRule
+		if err := json.Unmarshal([]byte(invalidSourceAddress), &appRuleConfig); err != nil {
+			assert.Fail(t, unMarshalAppRuleError)
+		}
+
+		err := ValidateRestBody(appRuleConfig)
+		assert.Error(t, err)
+	})
 }
