@@ -286,7 +286,7 @@ func (c *AppRuleController) GetAppRuleConfig() {
 func (c *AppRuleController) handleLoggingForError(clientIp string, code int, errMsg string, appInstanceId string) {
 	c.writeErrorResponse(errMsg, code, appInstanceId)
 	log.Info("Response message for ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
-		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + "Status code: " + string(code) + ".]")
+		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
 }
 
 // Write error response
