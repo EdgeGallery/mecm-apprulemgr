@@ -35,6 +35,8 @@ const (
 	progressModel = "{\"taskId\":\"51ea862b-5806-4196-bce3-434bf9c95b18\"," +
 		"\"appInstanceId\":\"71ea862b-5806-4196-bce3-434bf9c95b18\"," +
 		"\"configResult\":\"SUCCESS\",\"configPhase\":\"0\",\"detailed\":\"success\"}"
+	ParamTenantId      = ":tenantId"
+	ParamAppInstanceId = ":appInstanceId"
 )
 
 // Creates http request
@@ -56,6 +58,11 @@ func setParam(ctx *context.BeegoInput, params map[string]string) {
 	for key, val := range params {
 		ctx.SetParam(key, val)
 	}
+}
+
+func createAppRuleConfigUrl(tenantId string, appInstanceId string) string {
+	return baseUrl + "tenants/" + tenantId +
+		"/app_instances/" + appInstanceId + "/appd_configuration"
 }
 
 func createToken(userid uint64) string {
@@ -93,11 +100,10 @@ func TestGetAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(baseUrl+"tenants/"+tenantId+
-		"/app_instances/"+appInstanceId+"/appd_configuration", "GET", nil)
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "GET", nil)
 	extraParams := map[string]string{
-		":tenantId":      tenantId,
-		":appInstanceId": appInstanceId,
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: appInstanceId,
 	}
 	// Prepare Input
 	input := &context.BeegoInput{Context: &context.Context{Request: request}}
@@ -139,12 +145,10 @@ func TestPostAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(baseUrl+"tenants/"+tenantId+
-		"/app_instances/"+appInstanceId+"/appd_configuration", "POST",
-		[]byte(appRule))
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "POST", []byte(appRule))
 	params := map[string]string{
-		":tenantId":      tenantId,
-		":appInstanceId": appInstanceId,
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: appInstanceId,
 	}
 	// Prepare Input
 	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
@@ -186,12 +190,10 @@ func TestPutAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(baseUrl+"tenants/"+tenantId+
-		"/app_instances/"+appInstanceId+"/appd_configuration", "PUT",
-		[]byte(appRule))
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "PUT", []byte(appRule))
 	params := map[string]string{
-		":tenantId":      tenantId,
-		":appInstanceId": appInstanceId,
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: appInstanceId,
 	}
 
 	// Prepare Input
@@ -236,12 +238,10 @@ func TestDeleteAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(baseUrl+"tenants/"+tenantId+
-		"/app_instances/"+appInstanceId+"/appd_configuration", "DELETE",
-		[]byte(appRule))
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "DELETE", []byte(appRule))
 	params := map[string]string{
-		":tenantId":      tenantId,
-		":appInstanceId": appInstanceId,
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: appInstanceId,
 	}
 
 	// Prepare Input
@@ -284,12 +284,10 @@ func TestInvalidAppInstanceId(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(baseUrl+"tenants/"+tenantId+
-		"/app_instances/"+appInstanceId+"/appd_configuration", "DELETE",
-		[]byte(appRule))
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "DELETE", []byte(appRule))
 	params := map[string]string{
-		":tenantId":      tenantId,
-		":appInstanceId": "1234",
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: "1234",
 	}
 
 	// Prepare Input
