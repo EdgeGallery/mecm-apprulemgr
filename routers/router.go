@@ -20,6 +20,7 @@ package routers
 import (
 	"github.com/astaxie/beego"
 	"mecm-apprulemgr/controllers"
+	"mecm-apprulemgr/util"
 )
 
 const RootPath string = "/apprulemgr/v1"
@@ -27,12 +28,8 @@ const RootPath string = "/apprulemgr/v1"
 // Init application rule controller APIs
 func init() {
 	beego.Router(RootPath+"/health", &controllers.AppRuleController{}, "get:HealthCheck")
-	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"post:CreateAppRuleConfig")
-	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"put:UpdateAppRuleConfig")
-	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"delete:DeleteAppRuleConfig")
-	beego.Router(RootPath+"/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration", &controllers.AppRuleController{},
-		"get:GetAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "post:CreateAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "put:UpdateAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "delete:DeleteAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "get:GetAppRuleConfig")
 }

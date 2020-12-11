@@ -38,87 +38,75 @@ func (r *RestClientMock) sendRequest() (*http.Response, error) {
 
 func TestTask(t *testing.T) {
 	t.Run("TestTaskQuerySuccess", func(t *testing.T) {
-		// mock response
-		progressModel := "{\n  \"taskId \": \"51ea862b-5806-4196-bce3-434bf9c95b18\",\n " +
-			" \"appInstanceId\": \"71ea862b-5806-4196-bce3-434bf9c95b18\",\n  " +
-			"\"configResult\": \"SUCCESS\",\n  \"configPhase\": \"0\",\n  \"detailed\": \"\"\n}"
 		httpResponse := &http.Response{
 			Status:     "200 OK",
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
+			Body:       ioutil.NopCloser(bytes.NewBufferString(SuccessResponse)),
 		}
 
 		// mock rest client
 		restClientMock := RestClientMock{}
-		restClientMock.On("sendRequest").Return(httpResponse, nil)
+		restClientMock.On(SendRequest).Return(httpResponse, nil)
 
 		// create task
 		task := &Task{
-			taskId:        "51ea862b-5806-4196-bce3-434bf9c95b18",
+			taskId:        TaskId,
 			retryInterval: 2,
 			retryLimit:    2,
 			restClient:    &restClientMock,
-			appInstanceId: "71ea862b-5806-4196-bce3-434bf9c95b18",
+			appInstanceId: AppInstanceId,
 		}
 
 		response, _ := task.handleTaskQuery()
 
 		// verify response
 		assert.Equal(t, response.code, 200)
-		assert.Equal(t, response.progressModel.ConfigResult, "SUCCESS")
+		assert.Equal(t, Success, response.progressModel.ConfigResult)
 	})
 
 	t.Run("TestTaskQueryFailure", func(t *testing.T) {
-		// mock response
-		progressModel := "{\n  \"taskId \": \"51ea862b-5806-4196-bce3-434bf9c95b18\",\n " +
-			" \"appInstanceId\": \"71ea862b-5806-4196-bce3-434bf9c95b18\",\n  " +
-			"\"configResult\": \"FAILURE\",\n  \"configPhase\": \"0\",\n  \"detailed\": \"\"\n}"
 		httpResponse := &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
+			Body:       ioutil.NopCloser(bytes.NewBufferString(FailureResponse)),
 		}
 
 		// mock rest client
 		restClientMock := RestClientMock{}
-		restClientMock.On("sendRequest").Return(httpResponse, nil)
+		restClientMock.On(SendRequest).Return(httpResponse, nil)
 
 		// create task
 		task := &Task{
-			taskId:        "51ea862b-5806-4196-bce3-434bf9c95b18",
+			taskId:        TaskId,
 			retryInterval: 2,
 			retryLimit:    1,
 			restClient:    &restClientMock,
-			appInstanceId: "71ea862b-5806-4196-bce3-434bf9c95b18",
+			appInstanceId: AppInstanceId,
 		}
 
 		response, _ := task.handleTaskQuery()
 
 		// verify response
 		assert.Equal(t, response.code, 500)
-		assert.Equal(t, response.progressModel.ConfigResult, "FAILURE")
+		assert.Equal(t, response.progressModel.ConfigResult, Failure)
 	})
 
 	t.Run("TestTaskQueryTimeOut", func(t *testing.T) {
-		// mock response
-		progressModel := "{\n  \"taskId \": \"51ea862b-5806-4196-bce3-434bf9c95b18\",\n " +
-			" \"appInstanceId\": \"71ea862b-5806-4196-bce3-434bf9c95b18\",\n  " +
-			"\"configResult\": \"PROCESSING\",\n  \"configPhase\": \"0\",\n  \"detailed\": \"\"\n}"
 		httpResponse := &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
+			Body:       ioutil.NopCloser(bytes.NewBufferString(InProgressResponse)),
 		}
 
 		// mock rest client
 		restClientMock := RestClientMock{}
-		restClientMock.On("sendRequest").Return(httpResponse, nil)
+		restClientMock.On(SendRequest).Return(httpResponse, nil)
 
 		// create task
 		task := &Task{
-			taskId:        "51ea862b-5806-4196-bce3-434bf9c95b18",
+			taskId:        TaskId,
 			retryInterval: 1,
 			retryLimit:    1,
 			restClient:    &restClientMock,
-			appInstanceId: "71ea862b-5806-4196-bce3-434bf9c95b18",
+			appInstanceId: AppInstanceId,
 		}
 
 		_, err := task.handleTaskQuery()
@@ -126,40 +114,37 @@ func TestTask(t *testing.T) {
 	})
 
 	t.Run("TestTaskQueryFailureModel", func(t *testing.T) {
-		// mock response
-		failureModel := "{\n  \"type\": \"error\",\n  \"title\": \"config error\",\n  \"status\": 5,\n " +
-			" \"detail\": \"duplicate entry\"\n}"
 		httpResponse := &http.Response{
 			StatusCode: 400,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(failureModel)),
+			Body:       ioutil.NopCloser(bytes.NewBufferString(MepFailureResponse)),
 		}
 
 		// mock rest client
 		restClientMock := RestClientMock{}
-		restClientMock.On("sendRequest").Return(httpResponse, nil)
+		restClientMock.On(SendRequest).Return(httpResponse, nil)
 
 		// create task
 		task := &Task{
-			taskId:        "51ea862b-5806-4196-bce3-434bf9c95b18",
+			taskId:        TaskId,
 			retryInterval: 1,
 			retryLimit:    1,
 			restClient:    &restClientMock,
-			appInstanceId: "71ea862b-5806-4196-bce3-434bf9c95b18",
+			appInstanceId: AppInstanceId,
 		}
 
 		response, _ := task.handleTaskQuery()
 		assert.Equal(t, response.code, 400)
-		assert.Equal(t, response.progressModel.ConfigResult, "FAILURE")
+		assert.Equal(t, response.progressModel.ConfigResult, Failure)
 		assert.Equal(t, response.progressModel.Detailed, "duplicate entry")
 	})
 
 	t.Run("TestCreateTask", func(t *testing.T) {
-		restClient, _ := createRestClient(util.CreateTaskQueryUrl("51ea862b-5806-4196-bce3-434bf9c95b18"), util.Get, nil)
+		restClient, _ := createRestClient(util.CreateTaskQueryUrl(TaskId), util.Get, nil)
 
-		task := createTask("51ea862b-5806-4196-bce3-434bf9c95b18", restClient, "71ea862b-5806-4196-bce3-434bf9c95b18")
+		task := createTask(TaskId, restClient, AppInstanceId)
 
-		assert.Equal(t, task.appInstanceId, "71ea862b-5806-4196-bce3-434bf9c95b18")
-		assert.Equal(t, task.taskId, "51ea862b-5806-4196-bce3-434bf9c95b18")
+		assert.Equal(t, task.appInstanceId, AppInstanceId)
+		assert.Equal(t, task.taskId, TaskId)
 		assert.Equal(t, task.retryLimit, 30)
 		assert.Equal(t, task.retryInterval, 2)
 	})

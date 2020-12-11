@@ -88,26 +88,14 @@ func (a *AppRuleFacade) handleAppRuleGetRequest() (*Response, error) {
 
 // Creates new rest client based on method
 func createRestClient(url string, method string, rule *models.AppdRule) (*RestClient, error) {
-	switch method {
-	case util.Post:
+	if method == util.Post || method == util.Put {
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
 			return nil, errors.New(util.MarshalAppRuleModelError)
 		}
-
 		return CreateRestClient(url, method, appRuleConfigBytes), nil
-	case util.Put:
-		appRuleConfigBytes, err := json.Marshal(rule)
-		if err != nil {
-			return nil, errors.New(util.MarshalAppRuleModelError)
-		}
-
-		return CreateRestClient(url, method, appRuleConfigBytes), nil
-	case util.Get:
+	} else if method == util.Get || method == util.Delete {
 		return CreateRestClient(url, method, nil), nil
-	case util.Delete:
-		return CreateRestClient(url, method, nil), nil
-	default:
-		return nil, errors.New(util.UnknownRestMethod)
 	}
+	return nil, errors.New(util.UnknownRestMethod)
 }
