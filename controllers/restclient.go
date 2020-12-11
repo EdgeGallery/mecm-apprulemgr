@@ -67,13 +67,13 @@ func (r *RestClient) sendRequest() (*http.Response, error) {
 func createRequest(url string, method string, body []byte) (*http.Request, error) {
 	switch method {
 	case util.Get:
-		return http.NewRequest(method, url, nil)
+		return http.NewRequest(util.Get, url, nil)
 	case util.Delete:
-		return http.NewRequest(method, url, nil)
+		return http.NewRequest(util.Delete, url, nil)
 	case util.Post:
-		return http.NewRequest(method, url, bytes.NewBuffer(body))
+		return http.NewRequest(util.Post, url, bytes.NewBuffer(body))
 	case util.Put:
-		return http.NewRequest(method, url, bytes.NewBuffer(body))
+		return http.NewRequest(util.Put, url, bytes.NewBuffer(body))
 	default:
 		return nil, errors.New(util.UnknownRestMethod)
 	}

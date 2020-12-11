@@ -71,8 +71,7 @@ func TestValidateAccessTokenInvalid1(t *testing.T) {
 }
 
 func TestValidateIpv4AddressSuccess(t *testing.T) {
-	ip := "1.2.3.4"
-	err := ValidateIpv4Address(ip)
+	err := ValidateIpv4Address("1.2.3.4")
 	assert.NoError(t, err, "TestValidateIpv4AddressSuccess execution result")
 }
 
@@ -119,84 +118,49 @@ func TestGetAppConfig(_ *testing.T) {
 
 func TestValidateRestBody(t *testing.T) {
 	const (
-		invalidFilterType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"LOW\"," +
+		invalidFilterType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule0\",\"filterType\": \"LOW\"," +
 			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
 			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
 			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
 			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			" \"IP_V4\",\"ipAddress\": \"192.0.0.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
 			"true,\"appName\": \"abcd\"}"
 		invalidPriority = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
 			"\"priority\": 0,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		invalidAddressType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8081\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 1,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule1\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.1.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd1\"}"
+		invalidAddressType = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule2\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 2,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8082\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 2,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule2\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
 			" \"IP\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		invalidAppName = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"true,\"appName\": \"abcd2\"}"
+		invalidAppName = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule3\",\"filterType\": \"FLOW\"," +
 			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8083\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 3,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule3\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.3.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
 			"true,\"appName\": \"_abcd\"}"
-		invalidAction = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DOP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		ipv6Address = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+		invalidAction = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule4\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 3,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8084\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 4,\"tC\": 1}],\"action\":\"DOP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule5\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.4.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd4\"}"
+		ipv6Address = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule5\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 4,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8085\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 5,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule6\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
 			" \"IP_V4\",\"ipAddress\": \"2001:0db8:85a3:0000:0000:8a2e:0370:7334\", \"ttl\": 30," +
 			"\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		ipv4Addresss = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"256.256.256.256\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		invalidAddress = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"2001:0db8:85a3:0000:0000:8a2e:0370:7334:3445\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		invalidProtocol = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"_TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
-		missingMandatoryParam = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true}"
-		invalidSourceAddress = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
-			"\"priority\": 1,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1\"    ], \"dstAddress\":" +
-			" [\"192.168.1.1/28\"],\"srcPort\": [\"8080\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
-			" 1,\"dSCP\": 0,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
-			"[{\"dnsRuleId\": \"dnsRule4\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
-			" \"IP_V4\",\"ipAddress\": \"192.0.2.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
-			"true,\"appName\": \"abcd\"}"
+			"true,\"appName\": \"abcd5\"}"
 		unMarshalAppRuleError = "failed to create appdrule model"
 	)
 
@@ -259,6 +223,47 @@ func TestValidateRestBody(t *testing.T) {
 		err := ValidateRestBody(appRuleConfig)
 		assert.Nil(t, err)
 	})
+}
+
+func TestValidateRestBody2(t *testing.T) {
+	const (
+		ipv4Addresss = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule6\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 5,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8086\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 6,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule7\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"256.256.256.256\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd6\"}"
+		invalidAddress = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule7\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 6,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8087\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 7,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule8\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"2001:0db8:85a3:0000:0000:8a2e:0370:7334:3445\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd7\"}"
+		invalidProtocol = "{\"appTrafficRule\": [{\"trafficRuleId\":\"TrafficRule8\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 7,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8088\"],\"dstPort\": [\"8080\"], \"protocol\": [\"_TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 8,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule9\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.6.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd8\"}"
+		missingMandatoryParam = "{\"appTrafficRule\": [{\"trafficRuleId9\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 8,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1/28\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8089\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 9,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule10\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.7.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true}"
+		invalidSourceAddress = "{\"appTrafficRule\": [{\"trafficRuleId10\":\"TrafficRule1\",\"filterType\": \"FLOW\"," +
+			"\"priority\": 9,\"trafficFilter\": [{\"srcAddress\": [\"192.168.1.1\"    ], \"dstAddress\":" +
+			" [\"192.168.1.1/28\"],\"srcPort\": [\"8090\"],\"dstPort\": [\"8080\"], \"protocol\": [\"TCP\"],\"qCI\":" +
+			" 1,\"dSCP\": 10,\"tC\": 1}],\"action\":\"DROP\",     \"state\": \"ACTIVE\"}],\"appDNSRule\": " +
+			"[{\"dnsRuleId\": \"dnsRule11\",\"domainName\": \"www.example.com\",\"ipAddressType\":" +
+			" \"IP_V4\",\"ipAddress\": \"192.0.8.0\", \"ttl\": 30,\"state\": \"ACTIVE\"}],\"appSupportMp1\": " +
+			"true,\"appName\": \"abcd9\"}"
+		unMarshalAppRuleError = "failed to create appdrule model"
+	)
 
 	t.Run("TestIpv4address", func(t *testing.T) {
 		var appRuleConfig *models.AppdRule
