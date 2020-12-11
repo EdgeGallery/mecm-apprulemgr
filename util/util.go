@@ -73,6 +73,7 @@ const (
 	AppInstanceIdInvalid       = "app instance id is invalid"
 	TenantIdInvalid            = "tenant id is invalid"
 	RequestBodyTooLarge        = "request body too large"
+	IllegalTenantId string     = "illegal TenantId"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -246,7 +247,7 @@ func CreateTaskQueryUrl(taskId string) string {
 }
 
 // Validate access token
-func ValidateAccessToken(accessToken string, allowedRoles []string) error {
+func ValidateAccessToken(accessToken string, allowedRoles []string, tenantId string) error {
 	if accessToken == "" {
 		return errors.New("require token")
 	}
@@ -257,7 +258,7 @@ func ValidateAccessToken(accessToken string, allowedRoles []string) error {
 	})
 
 	if token != nil && !token.Valid {
-		err := validateTokenClaims(claims, allowedRoles)
+		err := validateTokenClaims(claims, allowedRoles, tenantId)
 		if err != nil {
 			return err
 		}
@@ -282,7 +283,7 @@ func ValidateAccessToken(accessToken string, allowedRoles []string) error {
 }
 
 // Validate token claims
-func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string) error {
+func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string, userRequestTenantId string) error {
 	if claims["authorities"] == nil {
 		log.Info("Invalid token A")
 		return errors.New(InvalidToken)
@@ -305,6 +306,28 @@ func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string) error {
 	if err != nil {
 		log.Info("token expired")
 		return errors.New(InvalidToken)
+	}
+	if userRequestTenantId != "" {
+		err = ValidateUserIdFromRequest(claims, userRequestTenantId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ValidateUserIdFromRequest(claims jwt.MapClaims, userIdFromRequest string) error {
+	userIdFromToken := ""
+	log.Info(userIdFromToken)
+
+	for key, value := range claims {
+		if key == "userId" {
+			userId := value.(interface{})
+			if userId != userIdFromRequest {
+				log.Error("Illegal TenantId")
+				return errors.New(IllegalTenantId)
+			}
+		}
 	}
 	return nil
 }
