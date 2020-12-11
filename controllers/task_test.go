@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"bytes"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -33,7 +32,6 @@ type RestClientMock struct {
 
 // Sends rest request and returns response
 func (r *RestClientMock) sendRequest() (*http.Response, error) {
-	log.Info("mock method called")
 	args := r.Called()
 	return args.Get(0).(*http.Response), nil
 }
