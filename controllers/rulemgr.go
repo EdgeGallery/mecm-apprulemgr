@@ -262,7 +262,8 @@ func (c *AppRuleController) validateRequest() (int, error) {
 	c.displayReceivedMsg(clientIp)
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole})
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole}, tenantId)
 	if err != nil {
 		return util.StatusUnauthorized, errors.New(util.AuthorizationFailed)
 	}
