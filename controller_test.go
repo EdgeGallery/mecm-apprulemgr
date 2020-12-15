@@ -37,6 +37,7 @@ const (
 		"\"configResult\":\"SUCCESS\",\"configPhase\":\"0\",\"detailed\":\"success\"}"
 	ParamTenantId      = ":tenantId"
 	ParamAppInstanceId = ":appInstanceId"
+	userId = tenantId
 )
 
 // Creates http request
@@ -47,7 +48,7 @@ func getHttpRequest(uri string, method string, body []byte) (req *http.Request, 
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	accessToken := createToken(1)
+	accessToken := createToken(userId)
 	// Add additional headers
 	req.Header.Set("access_token", accessToken)
 	req.Header.Set("X-Forwarded-For", fwdIp)
@@ -65,7 +66,7 @@ func createAppRuleConfigUrl(tenantId string, appInstanceId string) string {
 		"/app_instances/" + appInstanceId + "/appd_configuration"
 }
 
-func createToken(userid uint64) string {
+func createToken(userid string) string {
 	//Creating Access Token
 	atClaims := jwt.MapClaims{}
 	roleName := make([]string, 3)
