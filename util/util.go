@@ -21,9 +21,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
+	"github.com/ulule/limiter/v3"
 	"io/ioutil"
 	"mecm-apprulemgr/models"
 	"net/http"
@@ -64,16 +66,16 @@ const (
 	InternalServerError int = 500
 
 	// error messages
-	ClientIpaddressInvalid     = "client ip address is invalid"
-	MarshalProgressModelError  = "failed to marshal progress model"
-	MarshalAppRuleModelError   = "failed to marshal app rule model"
-	UnMarshalAppRuleModelError = "failed to unmarshal app rule model"
-	UnknownRestMethod          = "unknown rest method"
-	FailedToWriteRes           = "failed to write response into context"
-	AppInstanceIdInvalid       = "app instance id is invalid"
-	TenantIdInvalid            = "tenant id is invalid"
-	RequestBodyTooLarge        = "request body too large"
-	IllegalTenantId string     = "illegal TenantId"
+	ClientIpaddressInvalid            = "client ip address is invalid"
+	MarshalProgressModelError         = "failed to marshal progress model"
+	MarshalAppRuleModelError          = "failed to marshal app rule model"
+	UnMarshalAppRuleModelError        = "failed to unmarshal app rule model"
+	UnknownRestMethod                 = "unknown rest method"
+	FailedToWriteRes                  = "failed to write response into context"
+	AppInstanceIdInvalid              = "app instance id is invalid"
+	TenantIdInvalid                   = "tenant id is invalid"
+	RequestBodyTooLarge               = "request body too large"
+	IllegalTenantId            string = "illegal TenantId"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -103,6 +105,10 @@ const (
 var cipherSuiteMap = map[string]uint16{
 	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+}
+
+type RateLimiter struct {
+	GeneralLimiter *limiter.Limiter
 }
 
 // Update tls configuration
@@ -446,4 +452,30 @@ func ValidateRestBody(body interface{}) error {
 		return verrs
 	}
 	return nil
+}
+
+// Handle number of REST requests per second
+func RateLimit(r *RateLimiter, ctx *context.Context) {
+	var (
+		limiterCtx limiter.Context
+		err        error
+		req        = ctx.Request
+	)
+
+	limiterCtx, err = r.GeneralLimiter.Get(req.Context(), "")
+	if err != nil {
+		ctx.Abort(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h := ctx.ResponseWriter.Header()
+	h.Add("X-RateLimit-Limit", strconv.FormatInt(limiterCtx.Limit, 10))
+	h.Add("X-RateLimit-Remaining", strconv.FormatInt(limiterCtx.Remaining, 10))
+	h.Add("X-RateLimit-Reset", strconv.FormatInt(limiterCtx.Reset, 10))
+
+	if limiterCtx.Reached {
+		log.Infof("Too Many Requests on %s", ctx.Input.URL())
+		ctx.Abort(http.StatusTooManyRequests, "429")
+		return
+	}
 }
