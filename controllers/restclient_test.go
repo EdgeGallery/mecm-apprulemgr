@@ -17,9 +17,7 @@
 package controllers
 
 import (
-	"encoding/json"
 	"github.com/stretchr/testify/assert"
-	"mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
 	"testing"
 )
@@ -40,42 +38,6 @@ func TestRestClient(t *testing.T) {
 
 		_, err := createRequest(util.CreateAppdRuleUrl(AppInstanceId), "unknown",
 			nil)
-		assert.Equal(t, err.Error(), "unknown rest method")
-	})
-
-	t.Run("TestCreateAppRuleFacade", func(t *testing.T) {
-		restClient, _ := createRestClient(util.CreateAppdRuleUrl(AppInstanceId), util.Get, nil)
-		appRuleFacade := createAppRuleFacade(restClient, AppInstanceId)
-		assert.Equal(t, appRuleFacade.appInstanceId, AppInstanceId)
-	})
-
-	t.Run("TestCreateRestClientForPostRequest", func(t *testing.T) {
-		appdModelBytes := []byte(AppRule)
-		var rule *models.AppdRule
-		_ = json.Unmarshal(appdModelBytes, &rule)
-		restClient, _ := createRestClient(util.CreateAppdRuleUrl(AppInstanceId),
-			util.Post, rule)
-		assert.Equal(t, restClient.method, util.Post)
-	})
-
-	t.Run("TestCreateRestClientForPutRequest", func(t *testing.T) {
-		appdModelBytes := []byte(AppRule)
-		var rule *models.AppdRule
-		_ = json.Unmarshal(appdModelBytes, &rule)
-		restClient, _ := createRestClient(util.CreateAppdRuleUrl(AppInstanceId),
-			util.Put, rule)
-		assert.Equal(t, restClient.method, util.Put)
-	})
-
-	t.Run("TestCreateRestClientForDeleteRequest", func(t *testing.T) {
-		restClient, _ := createRestClient(util.CreateAppdRuleUrl(AppInstanceId),
-			util.Delete, nil)
-		assert.Equal(t, restClient.method, util.Delete)
-	})
-
-	t.Run("TestCreateRestClientForUnknownMethod", func(t *testing.T) {
-		_, err := createRestClient(util.CreateAppdRuleUrl(AppInstanceId),
-			"unknown", nil)
 		assert.Equal(t, err.Error(), "unknown rest method")
 	})
 }

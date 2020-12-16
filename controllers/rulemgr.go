@@ -40,81 +40,19 @@ func (c *AppRuleController) HealthCheck() {
 // Configures app rule
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
-	code, err := c.validateRequest()
-	if err != nil {
-		c.handleLoggingForError(code, err.Error(), "")
-		return
-	}
-
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
-	appRuleConfig, err := c.validateAppRuleModel()
-	if err != nil {
-		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
-		return
-	}
-
-	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Post, appRuleConfig)
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
-		return
-	}
-
-	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
-	response, err := appRuleFacade.handleAppRuleRequest()
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
-		return
-	}
-
-	progressModelBytes, err := json.Marshal(response.progressModel)
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
-		return
-	}
-	c.writeResponse(progressModelBytes, response.code)
+	c.handleAppRuleConfig(util.Post)
 }
 
 // Updates app rule configuration
 func (c *AppRuleController) UpdateAppRuleConfig() {
 	log.Info("Application Rule Config update request received.")
-	code, err := c.validateRequest()
-	if err != nil {
-		c.handleLoggingForError(code, err.Error(), "")
-		return
-	}
-
-	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
-	appRuleConfig, err := c.validateAppRuleModel()
-	if err != nil {
-		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
-		return
-	}
-
-	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), util.Put, appRuleConfig)
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
-		return
-	}
-
-	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
-	response, err := appRuleFacade.handleAppRuleRequest()
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
-		return
-	}
-
-	progressModelBytes, err := json.Marshal(response.progressModel)
-	if err != nil {
-		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
-		return
-	}
-	c.writeResponse(progressModelBytes, response.code)
+	c.handleAppRuleConfig(util.Put)
 }
 
 // Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
-	code, err := c.validateRequest()
+	code, err := c.validateRequest([]string{util.MecmTenantRole})
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -145,7 +83,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 // Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
-	code, err := c.validateRequest()
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmGuestRole})
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -253,7 +191,7 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 }
 
 // validates rest request
-func (c *AppRuleController) validateRequest() (int, error) {
+func (c *AppRuleController) validateRequest(allowedRoles []string) (int, error) {
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
@@ -263,7 +201,7 @@ func (c *AppRuleController) validateRequest() (int, error) {
 
 	accessToken := c.Ctx.Request.Header.Get(util.AccessToken)
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	err = util.ValidateAccessToken(accessToken, []string{util.MecmTenantRole}, tenantId)
+	err = util.ValidateAccessToken(accessToken, allowedRoles, tenantId)
 	if err != nil {
 		return util.StatusUnauthorized, errors.New(util.AuthorizationFailed)
 	}
@@ -275,4 +213,39 @@ func (c *AppRuleController) validateRequest() (int, error) {
 		return util.BadRequest, err
 	}
 	return 0, nil
+}
+
+func (c *AppRuleController) handleAppRuleConfig(method string) {
+	code, err := c.validateRequest([]string{util.MecmTenantRole})
+	if err != nil {
+		c.handleLoggingForError(code, err.Error(), "")
+		return
+	}
+
+	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	appRuleConfig, err := c.validateAppRuleModel()
+	if err != nil {
+		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
+		return
+	}
+
+	restClient, err := createRestClient(util.CreateAppdRuleUrl(appInstanceId), method, appRuleConfig)
+	if err != nil {
+		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	appRuleFacade := createAppRuleFacade(restClient, appInstanceId)
+	response, err := appRuleFacade.handleAppRuleRequest()
+	if err != nil {
+		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
+		return
+	}
+
+	progressModelBytes, err := json.Marshal(response.progressModel)
+	if err != nil {
+		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
+		return
+	}
+	c.writeResponse(progressModelBytes, response.code)
 }
