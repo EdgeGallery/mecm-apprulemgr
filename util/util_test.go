@@ -25,6 +25,11 @@ import (
 	"time"
 )
 
+const (
+	userId   = "e921ce54-82c8-4532-b5c6-8516cf75f7a6"
+	tenantId = userId
+)
+
 func createToken(userid string) string {
 	//Creating Access Token
 	atClaims := jwt.MapClaims{}
@@ -43,14 +48,14 @@ func createToken(userid string) string {
 }
 
 func TestValidateAccessTokenSuccess(t *testing.T) {
-	accessToken := createToken("e921ce54-82c8-4532-b5c6-8516cf75f7a6")
-	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, "e921ce54-82c8-4532-b5c6-8516cf75f7a6")
+	accessToken := createToken(userId)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
 	assert.Nil(t, err, "TestValidateAccessTokenSuccess execution result")
 }
 
 func TestValidateAccessTokenFailure(t *testing.T) {
 	accessToken := ""
-	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, "e921ce54-82c8-4532-b5c6-8516cf75f7a6" )
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
 	assert.Error(t, err, "TestValidateAccessTokenFailure execution result")
 }
 

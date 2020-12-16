@@ -28,4 +28,5 @@ require (
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
+	github.com/ulule/limiter/v3 v3.8.0
 )
