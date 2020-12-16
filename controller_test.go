@@ -37,7 +37,11 @@ const (
 		"\"configResult\":\"SUCCESS\",\"configPhase\":\"0\",\"detailed\":\"success\"}"
 	ParamTenantId      = ":tenantId"
 	ParamAppInstanceId = ":appInstanceId"
-	userId = tenantId
+	userId             = tenantId
+	Post               = "POST"
+	Put                = "PUT"
+	Get                = "GET"
+	Delete             = "DELETE"
 )
 
 // Creates http request
@@ -83,8 +87,29 @@ func createToken(userid string) string {
 	return token
 }
 
-func TestGetAppRuleConfig(t *testing.T) {
+func setup(method string, body []byte, appInstanceId string, tenantId string) *controllers.AppRuleController {
+	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), method, body)
+	extraParams := map[string]string{
+		ParamTenantId:      tenantId,
+		ParamAppInstanceId: appInstanceId,
+	}
+	// Prepare Input
+	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
+	setParam(input, extraParams)
 
+	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
+		Response{ResponseWriter: httptest.NewRecorder()}}}
+
+	// Prepare beego controller
+	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
+		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
+		Data: make(map[interface{}]interface{})}
+
+	// Create app rule controller with prepared beego controller
+	return &controllers.AppRuleController{Controller: appRuleBeegoController}
+}
+
+func TestGetAppRuleConfig(t *testing.T) {
 	// Mock the required API
 	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
 		// do nothing
@@ -101,26 +126,7 @@ func TestGetAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "GET", nil)
-	extraParams := map[string]string{
-		ParamTenantId:      tenantId,
-		ParamAppInstanceId: appInstanceId,
-	}
-	// Prepare Input
-	input := &context.BeegoInput{Context: &context.Context{Request: request}}
-	setParam(input, extraParams)
-
-	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
-		Response{ResponseWriter: httptest.NewRecorder()}}}
-
-	// Prepare beego controller
-	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
-		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
-		Data: make(map[interface{}]interface{})}
-
-	// Create app rule controller with prepared beego controller
-	appRuleController := &controllers.AppRuleController{Controller: appRuleBeegoController}
-
+	appRuleController := setup(Get, nil, appInstanceId, tenantId)
 	// Test Capability
 	appRuleController.GetAppRuleConfig()
 
@@ -128,8 +134,7 @@ func TestGetAppRuleConfig(t *testing.T) {
 	assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 }
 
-func TestPostAppRuleConfig(t *testing.T) {
-	beego.BConfig.CopyRequestBody = true
+func TestAppRuleConfigRequest(t *testing.T) {
 	// Mock the required API
 	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
 		// do nothing
@@ -146,169 +151,45 @@ func TestPostAppRuleConfig(t *testing.T) {
 	})
 	defer patch4.Reset()
 
-	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "POST", []byte(appRule))
-	params := map[string]string{
-		ParamTenantId:      tenantId,
-		ParamAppInstanceId: appInstanceId,
-	}
-	// Prepare Input
-	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
-	setParam(input, params)
+	t.Run("TestPostAppRuleConfig", func(t *testing.T) {
+		appRuleController := setup(Post, []byte(appRule), appInstanceId, tenantId)
 
-	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
-		Response{ResponseWriter: httptest.NewRecorder()}}}
+		// Test Capability
+		appRuleController.CreateAppRuleConfig()
 
-	// Prepare beego controller
-	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
-		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
-		Data: make(map[interface{}]interface{})}
-
-	// Create app rule controller with prepared beego controller
-	appRuleController := &controllers.AppRuleController{Controller: appRuleBeegoController}
-
-	// Test Capability
-	appRuleController.CreateAppRuleConfig()
-
-	// Check for success case wherein the status value will be default i.e. 0
-	assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
-}
-
-func TestPutAppRuleConfig(t *testing.T) {
-	beego.BConfig.CopyRequestBody = true
-	// Mock the required API
-	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
-		// do nothing
+		// Check for success case wherein the status value will be default i.e. 0
+		assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 	})
-	defer patch2.Reset()
 
-	patch4 := gomonkey.ApplyFunc(util.DoRequest, func(_ *http.Request) (*http.Response, error) {
-		// do nothing
-		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
-			StatusCode: 200,
-			Status:     "200",
-		}, nil
+	t.Run("TestPutAppRuleConfig", func(t *testing.T) {
+		appRuleController := setup(Put, []byte(appRule), appInstanceId, tenantId)
+
+		// Test Capability
+		appRuleController.UpdateAppRuleConfig()
+
+		// Check for success case wherein the status value will be default i.e. 0
+		assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
+		response := appRuleController.Ctx.Output.Context.ResponseWriter.ResponseWriter.(*httptest.ResponseRecorder)
+		assert.Equal(t, len(progressModel), len(response.Body.String()))
 	})
-	defer patch4.Reset()
 
-	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "PUT", []byte(appRule))
-	params := map[string]string{
-		ParamTenantId:      tenantId,
-		ParamAppInstanceId: appInstanceId,
-	}
+	t.Run("TestDeleteAppRuleConfig", func(t *testing.T) {
+		appRuleController := setup(Delete, nil, appInstanceId, tenantId)
 
-	// Prepare Input
-	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
-	setParam(input, params)
+		// Test Capability
+		appRuleController.DeleteAppRuleConfig()
 
-	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
-		Response{ResponseWriter: httptest.NewRecorder()}}}
-
-	// Prepare beego controller
-	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
-		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
-		Data: make(map[interface{}]interface{})}
-
-	// Create app rule controller with prepared beego controller
-	appRuleController := &controllers.AppRuleController{Controller: appRuleBeegoController}
-
-	// Test Capability
-	appRuleController.UpdateAppRuleConfig()
-
-	// Check for success case wherein the status value will be default i.e. 0
-	assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
-	response := appRuleController.Ctx.Output.Context.ResponseWriter.ResponseWriter.(*httptest.ResponseRecorder)
-	assert.Equal(t, len(progressModel), len(response.Body.String()))
-}
-
-func TestDeleteAppRuleConfig(t *testing.T) {
-	beego.BConfig.CopyRequestBody = true
-	// Mock the required API
-	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
-		// do nothing
+		// Check for success case wherein the status value will be default i.e. 0
+		assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 	})
-	defer patch2.Reset()
 
-	patch4 := gomonkey.ApplyFunc(util.DoRequest, func(_ *http.Request) (*http.Response, error) {
-		// do nothing
-		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
-			StatusCode: 200,
-			Status:     "200",
-		}, nil
+	t.Run("TestInvalidAppInstanceId", func(t *testing.T) {
+		appRuleController := setup(Delete, nil, "1234", tenantId)
+
+		// Test Capability
+		appRuleController.DeleteAppRuleConfig()
+
+		// Check for success case wherein the status value will be default i.e. 0
+		assert.Equal(t, 400, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 	})
-	defer patch4.Reset()
-
-	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "DELETE", []byte(appRule))
-	params := map[string]string{
-		ParamTenantId:      tenantId,
-		ParamAppInstanceId: appInstanceId,
-	}
-
-	// Prepare Input
-	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
-	setParam(input, params)
-
-	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
-		Response{ResponseWriter: httptest.NewRecorder()}}}
-
-	// Prepare beego controller
-	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
-		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
-		Data: make(map[interface{}]interface{})}
-
-	// Create app rule controller with prepared beego controller
-	appRuleController := &controllers.AppRuleController{Controller: appRuleBeegoController}
-
-	// Test Capability
-	appRuleController.DeleteAppRuleConfig()
-
-	// Check for success case wherein the status value will be default i.e. 0
-	assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
-}
-
-func TestInvalidAppInstanceId(t *testing.T) {
-	beego.BConfig.CopyRequestBody = true
-	// Mock the required API
-	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
-		// do nothing
-	})
-	defer patch2.Reset()
-
-	patch4 := gomonkey.ApplyFunc(util.DoRequest, func(_ *http.Request) (*http.Response, error) {
-		// do nothing
-		return &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString(progressModel)),
-			StatusCode: 200,
-			Status:     "200",
-		}, nil
-	})
-	defer patch4.Reset()
-
-	request, _ := getHttpRequest(createAppRuleConfigUrl(tenantId, appInstanceId), "DELETE", []byte(appRule))
-	params := map[string]string{
-		ParamTenantId:      tenantId,
-		ParamAppInstanceId: "1234",
-	}
-
-	// Prepare Input
-	input := &context.BeegoInput{Context: &context.Context{Request: request}, RequestBody: []byte(appRule)}
-	setParam(input, params)
-
-	output := &context.BeegoOutput{Context: &context.Context{ResponseWriter: &context.
-		Response{ResponseWriter: httptest.NewRecorder()}}}
-
-	// Prepare beego controller
-	appRuleBeegoController := beego.Controller{Ctx: &context.Context{Input: input, Output: output,
-		Request: request, ResponseWriter: &context.Response{ResponseWriter: httptest.NewRecorder()}},
-		Data: make(map[interface{}]interface{})}
-
-	// Create app rule controller with prepared beego controller
-	appRuleController := &controllers.AppRuleController{Controller: appRuleBeegoController}
-
-	// Test Capability
-	appRuleController.DeleteAppRuleConfig()
-
-	// Check for success case wherein the status value will be default i.e. 0
-	assert.Equal(t, 400, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 }

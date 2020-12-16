@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xml:lang="en">
 <head>
     <meta charset="UTF-8">
     <title>404 Page not found</title>
