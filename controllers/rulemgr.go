@@ -203,7 +203,11 @@ func (c *AppRuleController) validateRequest(allowedRoles []string) (int, error) 
 	tenantId := c.Ctx.Input.Param(util.TenantId)
 	err = util.ValidateAccessToken(accessToken, allowedRoles, tenantId)
 	if err != nil {
-		return util.StatusUnauthorized, errors.New(util.AuthorizationFailed)
+		if err.Error() == util.Forbidden {
+			return util.StatusForbidden, errors.New(util.Forbidden)
+		} else {
+			return util.StatusUnauthorized, errors.New(util.AuthorizationFailed)
+		}
 	}
 	bKey := *(*[]byte)(unsafe.Pointer(&accessToken))
 	util.ClearByteArray(bKey)
