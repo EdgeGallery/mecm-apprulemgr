@@ -364,7 +364,6 @@ func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 					return errors.New(Forbidden)
 				}
 				return errors.New(InvalidToken)
-				return errors.New(InvalidToken)
 			}
 		}
 	}
