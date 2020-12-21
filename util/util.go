@@ -64,6 +64,7 @@ const (
 	BadRequest          int = 400
 	StatusUnauthorized  int = 401
 	InternalServerError int = 500
+	StatusForbidden     int = 403
 
 	// error messages
 	ClientIpaddressInvalid            = "client ip address is invalid"
@@ -76,6 +77,7 @@ const (
 	TenantIdInvalid                   = "tenant id is invalid"
 	RequestBodyTooLarge               = "request body too large"
 	IllegalTenantId            string = "illegal TenantId"
+	Forbidden                  string = "forbidden"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
@@ -357,6 +359,10 @@ func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 			}
 			if !isRoleAllowed(roleName, allowedRoles) {
 				log.Info("Invalid token A")
+				log.Info("Invalid token A")
+				if roleName == MecmGuestRole {
+					return errors.New(Forbidden)
+				}
 				return errors.New(InvalidToken)
 			}
 		}
