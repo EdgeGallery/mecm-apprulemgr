@@ -98,6 +98,7 @@ const (
 	AccessToken         string = "access_token"
 	AuthorizationFailed string = "authorization failed"
 	MecmTenantRole      string = "ROLE_MECM_TENANT"
+	MecmAdminRole       string = "ROLE_MECM_ADMIN"
 	MecmGuestRole       string = "ROLE_MECM_GUEST"
 	InvalidToken        string = "invalid token"
 	AppRuleConfigPath   string = "/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration"
@@ -354,6 +355,9 @@ func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 					break
 				} else if arr.Index(i).Interface() == MecmGuestRole {
 					roleName = MecmGuestRole
+					break
+				} else if arr.Index(i).Interface() == MecmAdminRole {
+					roleName = MecmAdminRole
 					break
 				}
 			}
