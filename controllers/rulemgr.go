@@ -52,7 +52,7 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 // Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole})
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -83,7 +83,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 // Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmGuestRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole})
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -220,7 +220,7 @@ func (c *AppRuleController) validateRequest(allowedRoles []string) (int, error) 
 }
 
 func (c *AppRuleController) handleAppRuleConfig(method string) {
-	code, err := c.validateRequest([]string{util.MecmTenantRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole})
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
