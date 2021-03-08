@@ -27,6 +27,10 @@ import (
 	"unsafe"
 )
 
+const (
+	AppdRule = "appd_rule"
+)
+
 // Application Rule Controller
 type AppRuleController struct {
 	beego.Controller
@@ -42,6 +46,7 @@ func (c *AppRuleController) HealthCheck() {
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
 	c.handleAppRuleConfig(util.Post)
+
 }
 
 // Updates app rule configuration
@@ -183,6 +188,8 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 		return nil, errors.New(util.UnMarshalAppRuleModelError)
 	}
 
+	// To add UUID for apprule, DstInterface, TunnelInfo & TrafficFilterId
+
 	err := util.ValidateRestBody(appRuleConfig)
 	if err != nil {
 		return nil, err
@@ -245,6 +252,15 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	if err != nil {
 		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
 		return
+	}
+
+	if response.code == http.StatusOK {
+		err = c.Db.InsertOrUpdateData(appRuleConfig, AppdRule)
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save app info record for id"+
+				appRuleConfig.AppdRuleId+"to database.", appInstanceId)
+			return
+		}
 	}
 
 	progressModelBytes, err := json.Marshal(response.progressModel)
