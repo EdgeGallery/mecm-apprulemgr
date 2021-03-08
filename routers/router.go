@@ -21,15 +21,26 @@ import (
 	"github.com/astaxie/beego"
 	"mecm-apprulemgr/controllers"
 	"mecm-apprulemgr/util"
+	"os"
 )
 
 const RootPath string = "/apprulemgr/v1"
 
 // Init application rule controller APIs
 func init() {
-	beego.Router(RootPath+"/health", &controllers.AppRuleController{}, "get:HealthCheck")
-	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "post:CreateAppRuleConfig")
-	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "put:UpdateAppRuleConfig")
-	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "delete:DeleteAppRuleConfig")
-	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{}, "get:GetAppRuleConfig")
+	adapter := initDbAdapter()
+	beego.Router(RootPath+"/health", &controllers.AppRuleController{Db: adapter}, "get:HealthCheck")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "post:CreateAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "put:UpdateAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "delete:DeleteAppRuleConfig")
+	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "get:GetAppRuleConfig")
+}
+
+// Init Db adapter
+func initDbAdapter() (pgDb controllers.Database) {
+	adapter, err := controllers.GetDbAdapter()
+	if err != nil {
+		os.Exit(1)
+	}
+	return adapter
 }

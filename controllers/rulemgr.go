@@ -30,6 +30,7 @@ import (
 // Application Rule Controller
 type AppRuleController struct {
 	beego.Controller
+	Db Database
 }
 
 // Heath Check
