@@ -18,10 +18,6 @@ package models
 
 import "github.com/astaxie/beego/orm"
 
-type SampleStruct struct {
-	SomeData string
-}
-
 // Init application info record
 func init() {
 	orm.RegisterModel(new(AppdRule))
