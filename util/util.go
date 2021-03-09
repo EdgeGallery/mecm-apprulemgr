@@ -103,6 +103,7 @@ const (
 	MecmGuestRole       string = "ROLE_MECM_GUEST"
 	InvalidToken        string = "invalid token"
 	AppRuleConfigPath   string = "/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration"
+	AppRuleSyncPath     string = "/tenants/:tenantId/app_instances/appd_configuration"
 	RequestBodyLength          = 4096
 )
 

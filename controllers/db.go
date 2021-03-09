@@ -16,10 +16,14 @@
 
 package controllers
 
+import "github.com/astaxie/beego/orm"
+
 // Database API's
 type Database interface {
 	InitDatabase() error
 	InsertOrUpdateData(data interface{}, cols ...string) (err error)
 	ReadData(data interface{}, cols ...string) (err error)
 	DeleteData(data interface{}, cols ...string) (err error)
+	QueryTable(query string) orm.QuerySeter
+	LoadRelated(md interface{}, name string) (int64, error)
 }

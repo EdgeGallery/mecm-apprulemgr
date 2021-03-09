@@ -16,7 +16,10 @@
 
 package controllers
 
-import log "github.com/sirupsen/logrus"
+import (
+	"github.com/astaxie/beego/orm"
+	log "github.com/sirupsen/logrus"
+)
 
 type MockDb struct {
 }
@@ -36,4 +39,14 @@ func (db *MockDb) ReadData(data interface{}, cols ...string) (err error) {
 
 func (db *MockDb) DeleteData(data interface{}, cols ...string) (err error) {
 	return nil
+}
+
+// return a raw query setter for raw sql string.
+func (db *MockDb) QueryTable(tableName string) orm.QuerySeter {
+	return nil
+}
+
+// Load Related
+func (db *MockDb) LoadRelated(md interface{}, name string) (int64, error) {
+	return 0, nil
 }

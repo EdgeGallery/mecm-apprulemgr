@@ -84,6 +84,18 @@ func (db *PgDb) DeleteData(data interface{}, cols ...string) (err error) {
 	return err
 }
 
+// return a raw query setter for raw sql string.
+func (db *PgDb) QueryTable(tableName string) orm.QuerySeter {
+	results := db.ormer.QueryTable(tableName)
+	return results
+}
+
+// Load Related
+func (db *PgDb) LoadRelated(md interface{}, name string) (int64, error) {
+	num, err := db.ormer.LoadRelated(md, name)
+	return num, err
+}
+
 // Init database
 func (db *PgDb) InitDatabase() error {
 	dbUser := getDbUser()
