@@ -311,7 +311,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		return
 	}
 
-	_, _ = c.Db.QueryTable(AppdRule).All(&appdRules)
+	_, _ = c.Db.QueryTable(AppdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRules)
 	for _, appdRule := range appdRules {
 		_, _ = c.Db.LoadRelated(appdRule, "AppTrafficRule")
 		_, _ = c.Db.LoadRelated(appdRule, "AppDnsRule")
