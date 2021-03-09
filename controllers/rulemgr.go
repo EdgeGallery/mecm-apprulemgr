@@ -290,3 +290,6 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	}
 	c.writeResponse(progressModelBytes, response.code)
 }
+
+func (c *AppRuleController) SynchronizeUpdatedRecords() {
+}
