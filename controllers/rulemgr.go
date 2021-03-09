@@ -264,6 +264,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	// Add all UUID
 	tenantId := c.Ctx.Input.Param(util.TenantId)
 	appRuleConfig.AppdRuleId = tenantId + appInstanceId
+	appRuleConfig.SyncStatus = false
 	for _, apprule := range appRuleConfig.AppTrafficRule {
 		for _, filter := range apprule.AppTrafficFilter {
 			filter.TrafficFilterId = util.GenerateUniqueId()
