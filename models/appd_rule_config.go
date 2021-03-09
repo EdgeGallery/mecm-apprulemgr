@@ -36,6 +36,8 @@ type AppdRule struct {
 	AppSupportMp1  bool              `json:"appSupportMp1,omitempty"`
 	AppTrafficRule []*AppTrafficRule `orm:"reverse(many);on_delete(set_null)" json:"appTrafficRule" validate:"min=0,dive,max=16" `
 	AppDnsRule     []*AppDnsRule     `orm:"reverse(many);on_delete(set_null)" json:"appDnsRule" validate:"min=0,dive,max=32" `
+	Origin         string            `json:"origin,omitempty"`
+	SyncStatus     bool              `json:"syncStatus,omitempty"`
 }
 
 // Represents traffic rule model
