@@ -81,14 +81,23 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 		return
 	}
 
+	tenantId := c.Ctx.Input.Param(util.TenantId)
 	if response.code == http.StatusOK {
-		tenantId := c.Ctx.Input.Param(util.TenantId)
 		err = c.Db.DeleteData(tenantId+appInstanceId, appdRuleId)
 		if err != nil {
 			c.handleLoggingForError(util.InternalServerError, "Failed to delete app rule record for id"+
 				tenantId+appInstanceId+"to database.", appInstanceId)
 			return
 		}
+	}
+
+	// Add stale record
+	rule := models.StaleAppdRule{AppdRuleId: tenantId + appInstanceId, TenantId: tenantId, AppInstanceId: appInstanceId}
+	err = c.Db.InsertOrUpdateData(rule, appdRuleId)
+	if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+		c.handleLoggingForError(util.InternalServerError, "Failed to save app rule record for id"+
+			rule.AppdRuleId+"to database.", appInstanceId)
+		return
 	}
 
 	progressModelBytes, err := json.Marshal(response.progressModel)
@@ -282,7 +291,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	if response.code == http.StatusOK {
 		err = c.Db.InsertOrUpdateData(appRuleConfig, appdRuleId)
 		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
-			c.handleLoggingForError(util.InternalServerError, "Failed to save app info record for id"+
+			c.handleLoggingForError(util.InternalServerError, "Failed to save app rule record for id"+
 				appRuleConfig.AppdRuleId+"to database.", appInstanceId)
 			return
 		}
