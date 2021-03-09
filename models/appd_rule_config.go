@@ -26,6 +26,7 @@ func init() {
 	orm.RegisterModel(new(TrafficFilter))
 	orm.RegisterModel(new(DstInterface))
 	orm.RegisterModel(new(TunnelInfo))
+	orm.RegisterModel(new(StaleAppdRule))
 }
 
 type AppdRule struct {
@@ -38,6 +39,13 @@ type AppdRule struct {
 	AppDnsRule     []*AppDnsRule     `orm:"reverse(many);on_delete(set_null)" json:"appDnsRule" validate:"min=0,dive,max=32" `
 	Origin         string            `orm:"default("meo")" json:"origin,omitempty"`
 	SyncStatus     bool              `orm:"default(false)" json:"syncStatus,omitempty"`
+}
+
+// Stale appd rule which are deleted locally and pending to be synchronized to center.
+type StaleAppdRule struct {
+	AppdRuleId     string            `orm:"pk" json:"appdRuleId,omitempty"`
+	TenantId       string            `json:"tenantId,omitempty"`
+	AppInstanceId  string            `json:"appInstanceId,omitempty"`
 }
 
 // Represents traffic rule model

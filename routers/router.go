@@ -35,6 +35,7 @@ func init() {
 	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "delete:DeleteAppRuleConfig")
 	beego.Router(RootPath+util.AppRuleConfigPath, &controllers.AppRuleController{Db: adapter}, "get:GetAppRuleConfig")
 	beego.Router(RootPath+util.AppRuleSyncPath+"/sync_updated", &controllers.AppRuleController{Db: adapter}, "get:SynchronizeUpdatedRecords")
+	beego.Router(RootPath+util.AppRuleSyncPath+"/sync_deleted", &controllers.AppRuleController{Db: adapter}, "get:SynchronizeDeletedRecords")
 }
 
 // Init Db adapter
