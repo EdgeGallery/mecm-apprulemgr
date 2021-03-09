@@ -320,6 +320,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		return
 	}
 
+	// Error handling to be further improved
 	_, _ = c.Db.QueryTable(AppdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRules)
 	for _, appdRule := range appdRules {
 		_, _ = c.Db.LoadRelated(appdRule, "AppTrafficRule")
@@ -348,7 +349,8 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		appdRule.SyncStatus = true
 		err = c.Db.InsertOrUpdateData(appdRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
-			log.Error("Failed to save app rule record to database.")
+			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to update sync status to true " +
+				"to database with error: ." + err.Error())
 			return
 		}
 	}
@@ -356,6 +358,31 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 
 func (c *AppRuleController) SynchronizeDeletedRecords() {
 	log.Info("Sync deleted app rule records request received.")
+
+	var staleRules []*models.StaleAppdRule
+	clientIp := c.Ctx.Input.IP()
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
+	if err != nil {
+		c.handleLoggingForSyncError(clientIp, code, err.Error())
+		return
+	}
+	_, _ = c.Db.QueryTable("stale_appd_rule").Filter("tenant_id",
+		c.Ctx.Input.Param(util.TenantId)).All(&staleRules)
+
+	appRuleModelBytes, err := json.Marshal(staleRules)
+	if err != nil {
+		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
+		return
+	}
+	c.writeResponse(appRuleModelBytes, http.StatusOK)
+	for _, staleRule := range staleRules {
+		err = c.Db.DeleteData(staleRule, appdRuleId)
+		if err != nil && err.Error() != lastInsertIdNotSupported {
+			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to delete stale data in " +
+				"database with error: ." + err.Error())
+			return
+		}
+	}
 }
 
 // Write error response
