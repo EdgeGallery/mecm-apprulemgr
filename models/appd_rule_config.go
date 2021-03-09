@@ -37,7 +37,7 @@ type AppdRule struct {
 	AppTrafficRule []*AppTrafficRule `orm:"reverse(many);on_delete(set_null)" json:"appTrafficRule" validate:"min=0,dive,max=16" `
 	AppDnsRule     []*AppDnsRule     `orm:"reverse(many);on_delete(set_null)" json:"appDnsRule" validate:"min=0,dive,max=32" `
 	Origin         string            `orm:"default("meo")" json:"origin,omitempty"`
-	SyncStatus     bool              `orm:"default("NotSync")" json:"syncStatus,omitempty"`
+	SyncStatus     bool              `orm:"default(False)" json:"syncStatus,omitempty"`
 }
 
 // Represents traffic rule model
@@ -74,7 +74,7 @@ type TunnelInfo struct {
 
 // Represents traffic filter model
 type TrafficFilter struct {
-	TrafficFilterId  string          `orm:"pk"`
+	TrafficFilterId  string          `orm:"pk" json:"trafficFilterId" validate:"omitempty`
 	SrcAddress       []string        `orm:"-" json:"srcAddress" validate:"omitempty,dive,cidr"`
 	SrcPort          []string        `orm:"-" json:"srcPort" validate:"omitempty,dive,gt=0,lte=65535"`
 	DstAddress       []string        `orm:"-" json:"dstAddress" validate:"omitempty,dive,cidr"`
