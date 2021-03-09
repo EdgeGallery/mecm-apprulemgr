@@ -24,6 +24,7 @@ import (
 	"mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
 	"net/http"
+	"strings"
 	"unsafe"
 )
 
@@ -321,7 +322,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 				_, _ = c.Db.LoadRelated(dstInterface, "TunnelInfo")
 			}
 		}
-		if !appdRule.SyncStatus {
+		if !appdRule.SyncStatus && strings.EqualFold(appdRule.Origin, "mepm") {
 			appdRulesSync = append(appdRulesSync, appdRule)
 		}
 	}
