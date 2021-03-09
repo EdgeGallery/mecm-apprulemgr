@@ -24,12 +24,21 @@ import (
 	"mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
 	"net/http"
+	"strings"
 	"unsafe"
+)
+
+const (
+	AppdRule                        = "appd_rule"
+	appdRuleId                      = "appd_rule_id"
+	failedToMarshal          string = "failed to marshal request"
+	lastInsertIdNotSupported string = "LastInsertId is not supported by this driver"
 )
 
 // Application Rule Controller
 type AppRuleController struct {
 	beego.Controller
+	Db Database
 }
 
 // Heath Check
@@ -52,7 +61,7 @@ func (c *AppRuleController) UpdateAppRuleConfig() {
 // Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -72,6 +81,16 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 		return
 	}
 
+	if response.code == http.StatusOK {
+		tenantId := c.Ctx.Input.Param(util.TenantId)
+		err = c.Db.DeleteData(tenantId+appInstanceId, appdRuleId)
+		if err != nil {
+			c.handleLoggingForError(util.InternalServerError, "Failed to delete app rule record for id"+
+				tenantId+appInstanceId+"to database.", appInstanceId)
+			return
+		}
+	}
+
 	progressModelBytes, err := json.Marshal(response.progressModel)
 	if err != nil {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
@@ -83,7 +102,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 // Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -191,7 +210,7 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 }
 
 // validates rest request
-func (c *AppRuleController) validateRequest(allowedRoles []string) (int, error) {
+func (c *AppRuleController) validateRequest(allowedRoles []string, isAppInstanceAvailable bool) (int, error) {
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
@@ -220,7 +239,7 @@ func (c *AppRuleController) validateRequest(allowedRoles []string) (int, error) 
 }
 
 func (c *AppRuleController) handleAppRuleConfig(method string) {
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole})
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -246,10 +265,102 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 		return
 	}
 
+	// Add all UUID
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	appRuleConfig.AppdRuleId = tenantId + appInstanceId
+	appRuleConfig.SyncStatus = false
+	for _, apprule := range appRuleConfig.AppTrafficRule {
+		for _, filter := range apprule.AppTrafficFilter {
+			filter.TrafficFilterId = util.GenerateUniqueId()
+		}
+		for _, dstInterface := range apprule.DstInterface {
+			dstInterface.DstInterfaceId = util.GenerateUniqueId()
+			dstInterface.TunnelInfo.TunnelInfoId = util.GenerateUniqueId()
+		}
+	}
+
+	if response.code == http.StatusOK {
+		err = c.Db.InsertOrUpdateData(appRuleConfig, appdRuleId)
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save app info record for id"+
+				appRuleConfig.AppdRuleId+"to database.", appInstanceId)
+			return
+		}
+	}
+
 	progressModelBytes, err := json.Marshal(response.progressModel)
 	if err != nil {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
 		return
 	}
 	c.writeResponse(progressModelBytes, response.code)
+}
+
+// Synchronize added or update records
+func (c *AppRuleController) SynchronizeUpdatedRecords() {
+	log.Info("Sync app config request received.")
+
+	var appdRules []*models.AppdRule
+	var appdRulesSync []*models.AppdRule
+
+	clientIp := c.Ctx.Input.IP()
+
+	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
+	if err != nil {
+		c.handleLoggingForSyncError(clientIp, code, err.Error())
+		return
+	}
+
+	_, _ = c.Db.QueryTable(AppdRule).All(&appdRules)
+	for _, appdRule := range appdRules {
+		_, _ = c.Db.LoadRelated(appdRule, "AppTrafficRule")
+		_, _ = c.Db.LoadRelated(appdRule, "AppDnsRule")
+		for _, trafficRule := range appdRule.AppTrafficRule {
+			_, _ = c.Db.LoadRelated(trafficRule, "AppTrafficFilter")
+			_, _ = c.Db.LoadRelated(trafficRule, "DstInterface")
+			for _, dstInterface := range trafficRule.DstInterface {
+				_, _ = c.Db.LoadRelated(dstInterface, "TunnelInfo")
+			}
+		}
+		if !appdRule.SyncStatus && strings.EqualFold(appdRule.Origin, "mepm") {
+			appdRulesSync = append(appdRulesSync, appdRule)
+		}
+	}
+
+	appRuleModelBytes, err := json.Marshal(appdRulesSync)
+	if err != nil {
+		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
+		return
+	}
+
+	c.writeResponse(appRuleModelBytes, http.StatusOK)
+
+	for _, appdRule := range appdRulesSync {
+		appdRule.SyncStatus = true
+		err = c.Db.InsertOrUpdateData(appdRule, appdRuleId)
+		if err != nil && err.Error() != lastInsertIdNotSupported {
+			log.Error("Failed to save app rule record to database.")
+			return
+		}
+	}
+}
+
+// Write error response
+func (c *AppRuleController) writeSyncErrorResponse(errMsg string, code int) {
+	log.Error(errMsg)
+	c.writeSyncResponse(errMsg, code)
+}
+
+// Write response
+func (c *AppRuleController) writeSyncResponse(msg string, code int) {
+	c.Data["json"] = msg
+	c.Ctx.ResponseWriter.WriteHeader(code)
+	c.ServeJSON()
+}
+
+// Handled logging for error case
+func (c *AppRuleController) handleLoggingForSyncError(clientIp string, code int, errMsg string) {
+	c.writeSyncErrorResponse(errMsg, code)
+	log.Info("Response message for ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
+		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
 }
