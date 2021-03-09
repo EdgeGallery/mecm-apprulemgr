@@ -24,6 +24,7 @@ import (
 	"github.com/astaxie/beego/context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter/v3"
 	"io/ioutil"
@@ -496,4 +497,8 @@ func RateLimit(r *RateLimiter, ctx *context.Context) {
 		ctx.Abort(http.StatusTooManyRequests, "429")
 		return
 	}
+}
+
+func GenerateUniqueId() string {
+	return uuid.NewV4().String()
 }

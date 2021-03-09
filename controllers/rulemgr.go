@@ -46,7 +46,6 @@ func (c *AppRuleController) HealthCheck() {
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
 	c.handleAppRuleConfig(util.Post)
-
 }
 
 // Updates app rule configuration
@@ -198,8 +197,6 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 		return nil, errors.New(util.UnMarshalAppRuleModelError)
 	}
 
-	// To add UUID for apprule, DstInterface, TunnelInfo & TrafficFilterId
-
 	err := util.ValidateRestBody(appRuleConfig)
 	if err != nil {
 		return nil, err
@@ -262,6 +259,19 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	if err != nil {
 		c.handleLoggingForError(util.InternalServerError, err.Error(), appInstanceId)
 		return
+	}
+
+	// Add all UUID
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+	appRuleConfig.AppdRuleId = tenantId + appInstanceId
+	for _, apprule := range appRuleConfig.AppTrafficRule {
+		for _, filter := range apprule.AppTrafficFilter {
+			filter.TrafficFilterId = util.GenerateUniqueId()
+		}
+		for _, dstInterface := range apprule.DstInterface {
+			dstInterface.DstInterfaceId = util.GenerateUniqueId()
+			dstInterface.TunnelInfo.TunnelInfoId = util.GenerateUniqueId()
+		}
 	}
 
 	if response.code == http.StatusOK {
