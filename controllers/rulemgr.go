@@ -354,6 +354,10 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	}
 }
 
+func (c *AppRuleController) SynchronizeDeletedRecords() {
+	log.Info("Sync deleted app rule records request received.")
+}
+
 // Write error response
 func (c *AppRuleController) writeSyncErrorResponse(errMsg string, code int) {
 	log.Error(errMsg)
