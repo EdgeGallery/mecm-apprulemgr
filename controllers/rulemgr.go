@@ -78,6 +78,16 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 		return
 	}
 
+	if response.code == http.StatusOK {
+		tenantId := c.Ctx.Input.Param(util.TenantId)
+		err = c.Db.DeleteData(tenantId+appInstanceId, AppdRule)
+		if err != nil {
+			c.handleLoggingForError(util.InternalServerError, "Failed to delete app info record for id"+
+				tenantId+appInstanceId+"to database.", appInstanceId)
+			return
+		}
+	}
+
 	progressModelBytes, err := json.Marshal(response.progressModel)
 	if err != nil {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
