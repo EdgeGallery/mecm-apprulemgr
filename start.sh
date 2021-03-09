@@ -160,49 +160,49 @@ if [ ! -z "$MEP_SERVER_PORT" ] ; then
 fi
 
 # db parameters validation
-if [ ! -z "$AppRuleMgr_DB" ]; then
-  validate_name "$AppRuleMgr_DB"
+if [ ! -z "$APPRULEMGR_DB" ]; then
+  validate_name "$APPRULEMGR_DB"
   valid_name="$?"
   if [ ! "$valid_name" -eq "0" ]; then
     echo "invalid DB name"
     exit 1
   fi
 else
-  export AppRuleMgr_DB=apprulemgrdb
+  export APPRULEMGR_DB=apprulemgrdb
 fi
 
 # db parameters validation
-if [ ! -z "$AppRuleMgr_USER" ]; then
-  validate_name "$AppRuleMgr_USER"
+if [ ! -z "$APPRULEMGR_USER" ]; then
+  validate_name "$APPRULEMGR_USER"
   valid_name="$?"
   if [ ! "$valid_name" -eq "0" ]; then
     echo "invalid DB user name"
     exit 1
   fi
 else
-  export AppRuleMgr_USER=apprulemgr
+  export APPRULEMGR_USER=apprulemgr
 fi
 
-if [ ! -z "$AppRuleMgr_DB_HOST" ]; then
-  validate_host_name "$AppRuleMgr_DB_HOST"
+if [ ! -z "$APPRULEMGR_DB_HOST" ]; then
+  validate_host_name "$APPRULEMGR_DB_HOST"
   valid_db_host_name="$?"
   if [ ! "$valid_db_host_name" -eq "0" ]; then
     echo "invalid db host name"
     exit 1
   fi
 else
-  export AppRuleMgr_DB_HOST=mepm-postgres
+  export APPRULEMGR_DB_HOST=mepm-postgres
 fi
 
-if [ ! -z "$AppRuleMgr_DB_PORT" ]; then
-  validate_port_num "$AppRuleMgr_DB_PORT"
-  valid_LCMCONTROLLER_db_port="$?"
-  if [ ! "$valid_LCMCONTROLLER_db_port" -eq "0" ]; then
+if [ ! -z "$APPRULEMGR_DB_PORT" ]; then
+  validate_port_num "$APPRULEMGR_DB_PORT"
+  valid_db_port="$?"
+  if [ ! "$valid_db_port" -eq "0" ]; then
     echo "invalid apprulemgr db port number"
     exit 1
   fi
 else
-  export AppRuleMgr_DB_PORT=5432
+  export APPRULEMGR_DB_PORT=5432
 fi
 
 sed -i "s/^HTTPSAddr.*=.*$/HTTPSAddr = $(hostname -i)/g" conf/app.conf

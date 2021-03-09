@@ -84,7 +84,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 		tenantId := c.Ctx.Input.Param(util.TenantId)
 		err = c.Db.DeleteData(tenantId+appInstanceId, appdRuleId)
 		if err != nil {
-			c.handleLoggingForError(util.InternalServerError, "Failed to delete app info record for id"+
+			c.handleLoggingForError(util.InternalServerError, "Failed to delete app rule record for id"+
 				tenantId+appInstanceId+"to database.", appInstanceId)
 			return
 		}
@@ -338,7 +338,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		appdRule.SyncStatus = true
 		err = c.Db.InsertOrUpdateData(appdRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
-			log.Error("Failed to save mec host info record to database.")
+			log.Error("Failed to save app rule record to database.")
 			return
 		}
 	}

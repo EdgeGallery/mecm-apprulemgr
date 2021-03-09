@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/astaxie/beego"
+	"mecm-apprulemgr/util"
 	"os"
 	"regexp"
 	"strings"
@@ -99,7 +100,7 @@ func (db *PgDb) LoadRelated(md interface{}, name string) (int64, error) {
 // Init database
 func (db *PgDb) InitDatabase() error {
 	dbUser := getDbUser()
-	dbPwd := []byte(os.Getenv("AppRuleMgr_DB_PASSWORD"))
+	dbPwd := []byte(os.Getenv("APPRULEMGR_DB_PASSWORD"))
 	dbName := getDbName()
 	dbHost := getDbHost()
 	dbPort := getDbPort()
@@ -107,7 +108,7 @@ func (db *PgDb) InitDatabase() error {
 	dbSslRootCert := getAppConfig("DB_SSL_ROOT_CERT")
 
 	dbPwdStr := string(dbPwd)
-	clearByteArray(dbPwd)
+	util.ClearByteArray(dbPwd)
 	dbParamsAreValid, validateDbParamsErr := validateDbParams(dbPwdStr)
 	if validateDbParamsErr != nil || !dbParamsAreValid {
 		return errors.New("failed to validate db parameters")
@@ -126,10 +127,10 @@ func (db *PgDb) InitDatabase() error {
 	registerDataBaseErr := orm.RegisterDataBase(defaultAlias, driverName, bStr)
 	//clear bStr
 	bKey1 := *(*[]byte)(unsafe.Pointer(&bStr))
-	clearByteArray(bKey1)
+	util.ClearByteArray(bKey1)
 
 	bKey := *(*[]byte)(unsafe.Pointer(&dbPwdStr))
-	clearByteArray(bKey)
+	util.ClearByteArray(bKey)
 
 	if registerDataBaseErr != nil {
 		log.Error("Failed to register database")
@@ -153,25 +154,25 @@ func (db *PgDb) InitDatabase() error {
 
 // Get db user
 func getDbUser() string {
-	dbUser := os.Getenv("AppRuleMgr_USER")
+	dbUser := os.Getenv("APPRULEMGR_USER")
 	return dbUser
 }
 
 // Get database name
 func getDbName() string {
-	dbName := os.Getenv("AppRuleMgr_DB")
+	dbName := os.Getenv("APPRULEMGR_DB")
 	return dbName
 }
 
 // Get database host
 func getDbHost() string {
-	dbHost := os.Getenv("AppRuleMgr_DB_HOST")
+	dbHost := os.Getenv("APPRULEMGR_DB_HOST")
 	return dbHost
 }
 
 // Get database port
 func getDbPort() string {
-	dbPort := os.Getenv("AppRuleMgr_DB_PORT")
+	dbPort := os.Getenv("APPRULEMGR_DB_PORT")
 	return dbPort
 }
 
@@ -234,11 +235,4 @@ func validateDbParams(dbPwd string) (bool, error) {
 		return dbPwdIsValid, validateDbPwdErr
 	}
 	return true, nil
-}
-
-// Clear byte array from memory
-func clearByteArray(data []byte) {
-	for i := 0; i < len(data); i++ {
-		data[i] = 0
-	}
 }
