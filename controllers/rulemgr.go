@@ -309,8 +309,9 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	log.Info("Sync app config request received.")
 
-	var appdRules []*models.AppdRule
-	var appdRulesSync []*models.AppdRule
+	var appdRules []models.AppdRule
+	var appdRulesSync []models.AppdRule
+	var syncUpdatedRulesRecords models.SyncUpdatedRulesRecords
 
 	clientIp := c.Ctx.Input.IP()
 
@@ -323,13 +324,13 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	// Error handling to be further improved
 	_, _ = c.Db.QueryTable(AppdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRules)
 	for _, appdRule := range appdRules {
-		_, _ = c.Db.LoadRelated(appdRule, "AppTrafficRule")
-		_, _ = c.Db.LoadRelated(appdRule, "AppDnsRule")
+		_, _ = c.Db.LoadRelated(&appdRule, "AppTrafficRule")
+		_, _ = c.Db.LoadRelated(&appdRule, "AppDnsRule")
 		for _, trafficRule := range appdRule.AppTrafficRule {
-			_, _ = c.Db.LoadRelated(trafficRule, "AppTrafficFilter")
-			_, _ = c.Db.LoadRelated(trafficRule, "DstInterface")
+			_, _ = c.Db.LoadRelated(&trafficRule, "AppTrafficFilter")
+			_, _ = c.Db.LoadRelated(&trafficRule, "DstInterface")
 			for _, dstInterface := range trafficRule.DstInterface {
-				_, _ = c.Db.LoadRelated(dstInterface, "TunnelInfo")
+				_, _ = c.Db.LoadRelated(&dstInterface, "TunnelInfo")
 			}
 		}
 		if !appdRule.SyncStatus && strings.EqualFold(appdRule.Origin, "mepm") {
@@ -337,7 +338,8 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		}
 	}
 
-	appRuleModelBytes, err := json.Marshal(appdRulesSync)
+	syncUpdatedRulesRecords.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecords.AppdRuleUpdatedRecs, appdRulesSync...)
+	appRuleModelBytes, err := json.Marshal(syncUpdatedRulesRecords)
 	if err != nil {
 		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
@@ -347,7 +349,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 
 	for _, appdRule := range appdRulesSync {
 		appdRule.SyncStatus = true
-		err = c.Db.InsertOrUpdateData(appdRule, appdRuleId)
+		err = c.Db.InsertOrUpdateData(&appdRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
 			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to update sync status to true " +
 				"to database with error: ." + err.Error())
@@ -359,7 +361,10 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 func (c *AppRuleController) SynchronizeDeletedRecords() {
 	log.Info("Sync deleted app rule records request received.")
 
-	var staleRules []*models.StaleAppdRule
+	var staleRules []models.StaleAppdRule
+	var syncDeletedRulesRecords models.SyncDeletedRulesRecords
+
+
 	clientIp := c.Ctx.Input.IP()
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
@@ -369,14 +374,15 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 	_, _ = c.Db.QueryTable("stale_appd_rule").Filter("tenant_id",
 		c.Ctx.Input.Param(util.TenantId)).All(&staleRules)
 
-	appRuleModelBytes, err := json.Marshal(staleRules)
+	syncDeletedRulesRecords.AppdRuleDeletedRecs = append(syncDeletedRulesRecords.AppdRuleDeletedRecs, staleRules...)
+	appRuleModelBytes, err := json.Marshal(syncDeletedRulesRecords)
 	if err != nil {
 		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
 	}
 	c.writeResponse(appRuleModelBytes, http.StatusOK)
 	for _, staleRule := range staleRules {
-		err = c.Db.DeleteData(staleRule, appdRuleId)
+		err = c.Db.DeleteData(&staleRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
 			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to delete stale data in " +
 				"database with error: ." + err.Error())

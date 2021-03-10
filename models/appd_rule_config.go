@@ -125,3 +125,13 @@ type OperationFailureModel struct {
 	Status int    `json:"status"`
 	Detail string `json:"detail"`
 }
+
+// Appd rule updated record synchronization model.
+type SyncUpdatedRulesRecords struct {
+	AppdRuleUpdatedRecs []AppdRule `json:"appdRuleUpdatedRecs"`
+}
+
+// Appd rule updated record synchronization model.
+type SyncDeletedRulesRecords struct {
+	AppdRuleDeletedRecs []StaleAppdRule `json:"appdRuleDeletedRecs"`
+}
