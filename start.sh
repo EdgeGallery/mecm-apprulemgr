@@ -206,6 +206,7 @@ else
 fi
 
 sed -i "s/^HTTPSAddr.*=.*$/HTTPSAddr = $(hostname -i)/g" conf/app.conf
+sed -i "s/^dbAdapter.*=.*$/dbAdapter = ${APPRULEMGR_DB_ADAPTER}/g" conf/app.conf
 
 cd /usr/app
 umask 0027
