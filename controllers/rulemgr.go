@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	AppdRule                        = "appd_rule"
+	AppdRule                        = "appd_rule_rec"
 	appdRuleId                      = "appd_rule_id"
 	failedToMarshal          string = "failed to marshal request"
 	lastInsertIdNotSupported string = "LastInsertId is not supported by this driver"
@@ -82,8 +82,11 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	}
 
 	tenantId := c.Ctx.Input.Param(util.TenantId)
+	appdRuleRecord := &models.AppdRuleRec{
+		AppdRuleId: tenantId+appInstanceId,
+	}
 	if response.code == http.StatusOK {
-		err = c.Db.DeleteData(tenantId+appInstanceId, appdRuleId)
+		err = c.Db.DeleteData(appdRuleRecord, appdRuleId)
 		if err != nil {
 			c.handleLoggingForError(util.InternalServerError, "Failed to delete app rule record for id"+
 				tenantId+appInstanceId+"to database.", appInstanceId)
@@ -92,7 +95,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	}
 
 	// Add stale record
-	rule := models.StaleAppdRule{AppdRuleId: tenantId + appInstanceId, TenantId: tenantId, AppInstanceId: appInstanceId}
+	rule := &models.StaleAppdRule{AppdRuleId: tenantId + appInstanceId, TenantId: tenantId, AppInstanceId: appInstanceId}
 	err = c.Db.InsertOrUpdateData(rule, appdRuleId)
 	if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
 		c.handleLoggingForError(util.InternalServerError, "Failed to save app rule record for id"+
@@ -274,27 +277,47 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 		return
 	}
 
-	// Add all UUID
-	tenantId := c.Ctx.Input.Param(util.TenantId)
-	appRuleConfig.AppdRuleId = tenantId + appInstanceId
-	appRuleConfig.SyncStatus = false
-	for _, apprule := range appRuleConfig.AppTrafficRule {
-		for _, filter := range apprule.AppTrafficFilter {
-			filter.TrafficFilterId = util.GenerateUniqueId()
-		}
-		for _, dstInterface := range apprule.DstInterface {
-			dstInterface.DstInterfaceId = util.GenerateUniqueId()
-			dstInterface.TunnelInfo.TunnelInfoId = util.GenerateUniqueId()
-		}
+	origin := c.Ctx.Request.Header.Get("origin")
+
+	syncStatus := true
+	if origin == "MEPM" {
+		syncStatus = false
 	}
 
-	if response.code == http.StatusOK {
-		err = c.Db.InsertOrUpdateData(appRuleConfig, appdRuleId)
-		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
-			c.handleLoggingForError(util.InternalServerError, "Failed to save app rule record for id"+
-				appRuleConfig.AppdRuleId+"to database.", appInstanceId)
-			return
-		}
+	// Add all UUID
+	tenantId := c.Ctx.Input.Param(util.TenantId)
+
+	appdRuleRecord := &models.AppdRuleRec{
+		AppdRuleId: tenantId+appInstanceId,
+	}
+
+	_ = c.Db.DeleteData(appdRuleRecord, appdRuleId)
+
+	appdRuleRec := &models.AppdRuleRec{
+		AppdRuleId: tenantId + appInstanceId,
+		TenantId: tenantId,
+		AppInstanceId: appInstanceId,
+		AppName:  appRuleConfig.AppName,
+		AppSupportMp1: appRuleConfig.AppSupportMp1,
+		SyncStatus: syncStatus,
+		Origin     : origin,
+	}
+
+	err = c.Db.InsertOrUpdateData(appdRuleRec, "appd_rule_id")
+	if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+		c.handleLoggingForError(util.InternalServerError, "Failed to save appd rule record for id"+
+			appdRuleRec.AppdRuleId+"to database.", appInstanceId)
+		return
+	}
+
+	err = c.insertOrUpdateAppTrafficRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
+	if err != nil {
+		return
+	}
+
+	err = c.insertOrUpdateAppDnsRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
+	if err != nil {
+		return
 	}
 
 	progressModelBytes, err := json.Marshal(response.progressModel)
@@ -409,4 +432,351 @@ func (c *AppRuleController) handleLoggingForSyncError(clientIp string, code int,
 	c.writeSyncErrorResponse(errMsg, code)
 	log.Info("Response message for ClientIP [" + clientIp + "] Operation [" + c.Ctx.Request.Method + "]" +
 		" Resource [" + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
+}
+
+func (c *AppRuleController) insertSrcAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, srcAddress := range filter.SrcAddress {
+		srcAddressRec := &models.SrcAddress{
+			SrcAddress: srcAddress,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(srcAddressRec, "src_address")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save src address record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertSrcPortRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, srcPort := range filter.SrcPort {
+		srcPortRec := &models.SrcPort{
+			SrcPort: srcPort,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(srcPortRec, "src_port")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save src port record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertDstAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, dstAddress := range filter.DstAddress {
+		dstAddressRec := &models.DstAddress{
+			DstAddress: dstAddress,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(dstAddressRec, "dst_address")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst address record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertDstPortRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, dstPort := range filter.DstPort {
+		dstPortRec := &models.DstPort{
+			DstPort: dstPort,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(dstPortRec, "dst_port")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst port record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertProtocolRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, protocol := range filter.Protocol {
+		protocolRec := &models.Protocol{
+			Protocol: protocol,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(protocolRec, "protocol")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save protocol record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertTagRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, tag := range filter.Tag {
+		tagRec := &models.Tag{
+			Tag: tag,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(tagRec, "tag")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save tag record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertSrcTunnelAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, srcTunnelAddr := range filter.SrcTunnelAddress {
+		srcTunnelAddrRec := &models.SrcTunnelAddress{
+			SrcTunnelAddress: srcTunnelAddr,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(srcTunnelAddrRec, "src_tunnel_address")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save src tunnel address record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+func (c *AppRuleController) insertDstTunnelAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, dstTunnelAddress := range filter.DstTunnelAddress {
+		dstTunnelAddressRec := &models.DstTunnelAddress{
+			DstTunnelAddress: dstTunnelAddress,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(dstTunnelAddressRec, "dst_tunnel_address")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst tunnel address record record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertSrcTunnelPortRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, srcTunnelPort := range filter.SrcTunnelPort {
+		srcTunnelPortRec := &models.SrcTunnelPort{
+			SrcTunnelPort: srcTunnelPort,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(srcTunnelPortRec, "src_tunnel_port")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save src tunnel port record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+
+func (c *AppRuleController) insertDstTunnelPortRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+	appInstanceId string) error {
+
+	for _, dstTunnelPort := range filter.DstTunnelPort {
+		dstTunnelPortRec := &models.DstTunnelPort{
+			DstTunnelPort: dstTunnelPort,
+			TrafficFilterRec: trafficFilterRec,
+		}
+		err := c.Db.InsertOrUpdateData(dstTunnelPortRec, "dst_tunnel_port")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst tunnel port record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertOrUpdateAppTrafficRuleRec(appRuleConfig *models.AppdRule,
+	appdRuleRec *models.AppdRuleRec, appInstanceId string) error {
+	for _, appRule := range appRuleConfig.AppTrafficRule {
+		appTrafficRuleRec := &models.AppTrafficRuleRec{
+			TrafficRuleId: appRule.TrafficRuleId,
+			FilterType: appRule.FilterType,
+			Priority: appRule.Priority,
+			Action:  appRule.Action,
+			AppdRule: appdRuleRec,
+		}
+		err := c.insertOrUpdateTrafficFltrRec(appRule, appTrafficRuleRec, appInstanceId)
+		if err != nil {
+			return err
+		}
+
+		err = c.insertOrUpdateDstInterfaceRec(appRule, appTrafficRuleRec, appInstanceId)
+		if err != nil {
+			return err
+		}
+
+		err = c.Db.InsertOrUpdateData(appTrafficRuleRec, "traffic_rule_id")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save traffic rule record for id"+
+				appRule.TrafficRuleId+"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertOrUpdateAppDnsRuleRec(appRuleConfig *models.AppdRule,
+	appdRuleRec *models.AppdRuleRec, appInstanceId string) error {
+	for _, appDnsRule := range appRuleConfig.AppDnsRule {
+		appDnsRuleRec := &models.AppDnsRuleRec{
+			DnsRuleId:appDnsRule.DnsRuleId,
+			DomainName:appDnsRule.DomainName,
+			IpAddressType: appDnsRule.IpAddressType,
+			IpAddress     : appDnsRule.IpAddress,
+			TTL      :appDnsRule.TTL,
+			AppdRule: appdRuleRec,
+		}
+
+		err := c.Db.InsertOrUpdateData(appDnsRuleRec, "dns_rule_id")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dns rule record for id"+
+				appDnsRule.DnsRuleId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertOrUpdateTrafficFltrChildRecs(filter models.TrafficFilter,
+	trafficFilterRec *models.TrafficFilterRec, appInstanceId string) error {
+	err := c.insertSrcAddressRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertSrcPortRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertDstAddressRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertDstPortRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertProtocolRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertTagRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertSrcTunnelAddressRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertDstTunnelAddressRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertSrcTunnelPortRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+
+	err = c.insertDstTunnelPortRec(filter, trafficFilterRec, appInstanceId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertOrUpdateTrafficFltrRec(appRule models.AppTrafficRule,
+	appTrafficRuleRec *models.AppTrafficRuleRec, appInstanceId string) error {
+	for _, filter := range appRule.AppTrafficFilter {
+		trafficFilterRec := &models.TrafficFilterRec{
+			TrafficFilterId: util.GenerateUniqueId(),
+			AppTrafficRuleRec:  appTrafficRuleRec,
+			Qci: filter.Qci,
+			Dscp: filter.Dscp,
+			Tc: filter.Tc,
+		}
+		err :=c.insertOrUpdateTrafficFltrChildRecs(filter, trafficFilterRec, appInstanceId)
+		if err != nil {
+			return err
+		}
+
+		err = c.Db.InsertOrUpdateData(trafficFilterRec, "traffic_filter_id")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save traffic filter record for id"+
+				filter.TrafficFilterId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *AppRuleController) insertOrUpdateDstInterfaceRec(appRule models.AppTrafficRule,
+	appTrafficRuleRec *models.AppTrafficRuleRec, appInstanceId string) error {
+	for _, dstInterface := range appRule.DstInterface {
+		dstInterfaceRec := &models.DstInterfaceRec{
+			DstInterfaceId:util.GenerateUniqueId(),
+			InterfaceType:dstInterface.InterfaceType,
+			SrcMacAddress: dstInterface.SrcMacAddress,
+			DstMacAddress: dstInterface.DstMacAddress,
+			DstIpAddress :dstInterface.DstIpAddress,
+			AppTrafficRuleRec:appTrafficRuleRec,
+		}
+		tunnelInfoRec := &models.TunnelInfoRec{
+			TunnelInfoId:       util.GenerateUniqueId(),
+			TunnelType : dstInterface.TunnelInfo.TunnelType,
+			TunnelDstAddress: dstInterface.TunnelInfo.TunnelDstAddress,
+			TunnelSrcAddress   :dstInterface.TunnelInfo.TunnelSrcAddress,
+			TunnelSpecificData:dstInterface.TunnelInfo.TunnelSpecificData,
+			DstInterfaceRec: dstInterfaceRec,
+		}
+
+		err := c.Db.InsertOrUpdateData(tunnelInfoRec, "tunnel_info_id")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst interface record for id"+
+				dstInterface.TunnelInfo.TunnelInfoId +"to database.", appInstanceId)
+			return err
+		}
+		err = c.Db.InsertOrUpdateData(dstInterfaceRec, "dst_interface_id")
+		if err != nil && err.Error() != "LastInsertId is not supported by this driver" {
+			c.handleLoggingForError(util.InternalServerError, "Failed to save dst interface record for id"+
+				dstInterface.DstInterfaceId +"to database.", appInstanceId)
+			return err
+		}
+	}
+	return nil
 }
