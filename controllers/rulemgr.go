@@ -332,9 +332,14 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	log.Info("Sync app config request received.")
 
-	var appdRules []models.AppdRule
-	var appdRulesSync []models.AppdRule
+	var appdRulesRec []models.AppdRuleRec
+	var appdRulesSync []models.AppdRuleRec
 	var syncUpdatedRulesRecords models.SyncUpdatedRulesRecords
+	var syncUpdatedRulesRecs models.SyncUpdatedRulesRecs
+	var trafficFilters []models.TrafficFilter
+	var appTrafficRules []models.AppTrafficRule
+	var dstInterfaces   []models.DstInterface
+	var appDnsRules     []models.AppDnsRule
 
 	clientIp := c.Ctx.Input.IP()
 
@@ -345,24 +350,155 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	}
 
 	// Error handling to be further improved
-	_, _ = c.Db.QueryTable(AppdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRules)
-	for _, appdRule := range appdRules {
-		_, _ = c.Db.LoadRelated(&appdRule, "AppTrafficRule")
-		_, _ = c.Db.LoadRelated(&appdRule, "AppDnsRule")
-		for _, trafficRule := range appdRule.AppTrafficRule {
-			_, _ = c.Db.LoadRelated(&trafficRule, "AppTrafficFilter")
-			_, _ = c.Db.LoadRelated(&trafficRule, "DstInterface")
-			for _, dstInterface := range trafficRule.DstInterface {
-				_, _ = c.Db.LoadRelated(&dstInterface, "TunnelInfo")
+	_, _ = c.Db.QueryTable(AppdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRulesRec)
+	for _, appdRuleRec := range appdRulesRec {
+		_, _ = c.Db.LoadRelated(&appdRuleRec, "AppTrafficRuleRec")
+		_, _ = c.Db.LoadRelated(&appdRuleRec, "AppDnsRuleRec")
+		for _, trafficRule := range appdRuleRec.AppTrafficRuleRec {
+			_, err = c.Db.LoadRelated(trafficRule, "AppTrafficFilterRec")
+			_, _ = c.Db.LoadRelated(trafficRule, "DstInterfaceRec")
+			for _, traficFilterRec := range trafficRule.AppTrafficFilterRec {
+				_, _ = c.Db.LoadRelated(traficFilterRec, "SrcAddress")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "SrcPort")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "DstAddress")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "DstPort")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "Protocol")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "Tag")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "SrcTunnelAddress")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "DstTunnelAddress")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "SrcTunnelPort")
+				_, _ = c.Db.LoadRelated(traficFilterRec, "DstTunnelPort")
+
+			}
+			for _, dstInterface := range trafficRule.DstInterfaceRec {
+				_, _ = c.Db.LoadRelated(dstInterface, "TunnelInfoRec")
 			}
 		}
-		if !appdRule.SyncStatus && strings.EqualFold(appdRule.Origin, "mepm") {
-			appdRulesSync = append(appdRulesSync, appdRule)
+		if !appdRuleRec.SyncStatus && strings.EqualFold(appdRuleRec.Origin, "mepm") {
+			appdRulesSync = append(appdRulesSync, appdRuleRec)
 		}
 	}
 
 	syncUpdatedRulesRecords.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecords.AppdRuleUpdatedRecs, appdRulesSync...)
-	appRuleModelBytes, err := json.Marshal(syncUpdatedRulesRecords)
+
+	for _, appdRuleRec := range syncUpdatedRulesRecords.AppdRuleUpdatedRecs {
+		for _, appTrafficRule := range appdRuleRec.AppTrafficRuleRec{
+			for _, trafficFilter := range appTrafficRule.AppTrafficFilterRec {
+				var srcAddress       []string
+				var srcPorts          []string
+				var dstAddress        []string
+				var dstPorts          []string
+				var protocols          []string
+				var tags          []string
+				var dstTunnelAddress []string
+				var srcTunnerlAddress          []string
+				var srcTunnelports []string
+				var dstTunnelports []string
+
+				for _, srcAddr := range trafficFilter.SrcAddress {
+					srcAddress = append(srcAddress, srcAddr.SrcAddress)
+				}
+				for _, srcPort := range trafficFilter.SrcPort {
+					srcPorts = append(srcPorts, srcPort.SrcPort)
+				}
+				for _, dstAddr := range trafficFilter.DstAddress {
+					dstAddress = append(dstAddress, dstAddr.DstAddress)
+				}
+				for _, dstPort := range trafficFilter.DstPort {
+					dstPorts = append(dstPorts, dstPort.DstPort)
+				}
+				for _, protocol := range trafficFilter.Protocol {
+					protocols = append(protocols, protocol.Protocol)
+				}
+				for _, tag := range trafficFilter.Tag {
+					tags = append(tags, tag.Tag)
+				}
+				for _, srcTunnelAddr := range trafficFilter.SrcTunnelAddress {
+					srcTunnerlAddress = append(srcTunnerlAddress, srcTunnelAddr.SrcTunnelAddress)
+				}
+				for _, srcTunnelport := range trafficFilter.SrcTunnelPort {
+					srcTunnelports = append(srcTunnelports, srcTunnelport.SrcTunnelPort)
+				}
+				for _, dstTunnelport := range trafficFilter.DstTunnelPort {
+					dstTunnelports = append(dstTunnelports, dstTunnelport.DstTunnelPort)
+				}
+				trafficFil := models.TrafficFilter{
+					TrafficFilterId  :trafficFilter.TrafficFilterId,
+					Qci              : trafficFilter.Qci,
+					Dscp            : trafficFilter.Dscp,
+					Tc               :trafficFilter.Tc,
+					SrcAddress       :srcAddress,
+					SrcPort          :srcPorts,
+					DstAddress      : dstAddress,
+					DstPort         :dstPorts,
+					Protocol        :protocols,
+					Tag        : tags,
+					SrcTunnelAddress :srcTunnerlAddress,
+					DstTunnelAddress : dstTunnelAddress,
+					SrcTunnelPort : srcTunnelports,
+					DstTunnelPort  :dstTunnelports,
+				}
+
+				trafficFilters = append(trafficFilters, trafficFil)
+			}
+
+			for _, dstInterfaceRec := range appTrafficRule.DstInterfaceRec {
+				tunnelInfo := models.TunnelInfo{
+					TunnelInfoId: dstInterfaceRec.TunnelInfoRec.TunnelInfoId,
+					TunnelType    : dstInterfaceRec.TunnelInfoRec.TunnelType,
+					TunnelDstAddress :dstInterfaceRec.TunnelInfoRec.TunnelDstAddress,
+					TunnelSrcAddress  : dstInterfaceRec.TunnelInfoRec.TunnelSrcAddress,
+					TunnelSpecificData :dstInterfaceRec.TunnelInfoRec.TunnelSpecificData,
+				}
+				dstInterface := models.DstInterface{
+					DstInterfaceId : dstInterfaceRec.DstInterfaceId,
+					InterfaceType  : dstInterfaceRec.InterfaceType,
+					SrcMacAddress  : dstInterfaceRec.SrcMacAddress,
+					DstMacAddress  : dstInterfaceRec.DstMacAddress,
+					DstIpAddress   : dstInterfaceRec.DstIpAddress,
+					TunnelInfo     : tunnelInfo,
+				}
+				dstInterfaces = append(dstInterfaces, dstInterface)
+			}
+			appTraffic := models.AppTrafficRule{
+				TrafficRuleId : appTrafficRule.TrafficRuleId,
+				FilterType       : appTrafficRule.FilterType,
+				Priority         :appTrafficRule.Priority,
+				Action           :appTrafficRule.Action,
+				AppTrafficFilter : trafficFilters,
+				DstInterface   :dstInterfaces,
+			}
+
+			appTrafficRules = append(appTrafficRules, appTraffic)
+		}
+
+		for _, appDnsRuleRec := range appdRuleRec.AppDnsRuleRec {
+			appDnsRule := models.AppDnsRule{
+				DnsRuleId: appDnsRuleRec.DnsRuleId,
+				DomainName    : appDnsRuleRec.DomainName,
+				IpAddressType : appDnsRuleRec.IpAddressType,
+				IpAddress     : appDnsRuleRec.IpAddress,
+				TTL           : appDnsRuleRec.TTL,
+			}
+			appDnsRules = append(appDnsRules, appDnsRule)
+		}
+
+		appdRule := models.AppdRule{
+			AppdRuleId:    appdRuleRec.AppdRuleId,
+			TenantId  : appdRuleRec.TenantId,
+			AppInstanceId  :appdRuleRec.AppInstanceId,
+			AppName        :appdRuleRec.AppName,
+			AppSupportMp1  :appdRuleRec.AppSupportMp1,
+			AppTrafficRule: appTrafficRules,
+			AppDnsRule    : appDnsRules,
+			Origin : appdRuleRec.Origin,
+			SyncStatus   :  appdRuleRec.SyncStatus,
+		}
+
+		syncUpdatedRulesRecs.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecs.AppdRuleUpdatedRecs, appdRule)
+	}
+
+	appRuleModelBytes, err := json.Marshal(syncUpdatedRulesRecs)
 	if err != nil {
 		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
