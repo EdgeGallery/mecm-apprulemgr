@@ -190,13 +190,15 @@ func (c *AppRuleController) displayReceivedMsg(clientIp string) {
 // validates api param
 func (c *AppRuleController) validateApiParams() error {
 	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
-	err := util.ValidateUUID(appInstanceId)
-	if err != nil {
-		return errors.New(util.AppInstanceIdInvalid)
+	if appInstanceId != "" {
+		err := util.ValidateUUID(appInstanceId)
+		if err != nil {
+			return errors.New(util.AppInstanceIdInvalid)
+		}
 	}
 
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	err = util.ValidateUUID(tenantId)
+	err := util.ValidateUUID(tenantId)
 	if err != nil {
 		return errors.New(util.TenantIdInvalid)
 	}
