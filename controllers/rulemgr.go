@@ -506,7 +506,9 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		return
 	}
 
-	c.writeResponse(appRuleModelBytes, http.StatusOK)
+	c.Ctx.ResponseWriter.Header().Set("Content-Type", "application/json")
+	c.Ctx.ResponseWriter.Header().Set("Accept", "application/json")
+	_, _ = c.Ctx.ResponseWriter.Write(appRuleModelBytes)
 
 	for _, appdRule := range appdRulesSync {
 		appdRule.SyncStatus = true
