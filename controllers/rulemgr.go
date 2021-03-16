@@ -543,7 +543,10 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
 	}
-	c.writeResponse(appRuleModelBytes, http.StatusOK)
+
+	c.Ctx.ResponseWriter.Header().Set("Content-Type", "application/json")
+	c.Ctx.ResponseWriter.Header().Set("Accept", "application/json")
+	_, _ = c.Ctx.ResponseWriter.Write(appRuleModelBytes)
 	for _, staleRule := range staleRules {
 		err = c.Db.DeleteData(&staleRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
