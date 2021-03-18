@@ -190,13 +190,15 @@ func (c *AppRuleController) displayReceivedMsg(clientIp string) {
 // validates api param
 func (c *AppRuleController) validateApiParams() error {
 	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
-	err := util.ValidateUUID(appInstanceId)
-	if err != nil {
-		return errors.New(util.AppInstanceIdInvalid)
+	if appInstanceId != "" {
+		err := util.ValidateUUID(appInstanceId)
+		if err != nil {
+			return errors.New(util.AppInstanceIdInvalid)
+		}
 	}
 
 	tenantId := c.Ctx.Input.Param(util.TenantId)
-	err = util.ValidateUUID(tenantId)
+	err := util.ValidateUUID(tenantId)
 	if err != nil {
 		return errors.New(util.TenantIdInvalid)
 	}
@@ -504,7 +506,9 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 		return
 	}
 
-	c.writeResponse(appRuleModelBytes, http.StatusOK)
+	c.Ctx.ResponseWriter.Header().Set("Content-Type", "application/json")
+	c.Ctx.ResponseWriter.Header().Set("Accept", "application/json")
+	_, _ = c.Ctx.ResponseWriter.Write(appRuleModelBytes)
 
 	for _, appdRule := range appdRulesSync {
 		appdRule.SyncStatus = true
@@ -539,7 +543,10 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
 	}
-	c.writeResponse(appRuleModelBytes, http.StatusOK)
+
+	c.Ctx.ResponseWriter.Header().Set("Content-Type", "application/json")
+	c.Ctx.ResponseWriter.Header().Set("Accept", "application/json")
+	_, _ = c.Ctx.ResponseWriter.Write(appRuleModelBytes)
 	for _, staleRule := range staleRules {
 		err = c.Db.DeleteData(&staleRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
