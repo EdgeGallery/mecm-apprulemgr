@@ -260,7 +260,7 @@ func CreateTaskQueryUrl(taskId string) string {
 // Validate access token
 func ValidateAccessToken(accessToken string, allowedRoles []string, tenantId string) error {
 	if accessToken == "" {
-		return errors.New("require token")
+		return nil
 	}
 
 	claims := jwt.MapClaims{}
