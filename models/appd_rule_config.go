@@ -101,7 +101,7 @@ type TrafficFilter struct {
 	Tag              []string        `orm:"-" json:"tag" validate:"omitempty"`
 	SrcTunnelAddress []string        `orm:"-" json:"srcTunnelAddress" validate:"omitempty"`
 	DstTunnelAddress []string        `orm:"-" json:"dstTunnelAddress" validate:"omitempty"`
-	SrcTunnelPort    []string        `orm:"-" json:"drcTunnelPort" validate:"omitempty"`
+	SrcTunnelPort    []string        `orm:"-" json:"srcTunnelPort" validate:"omitempty"`
 	DstTunnelPort    []string        `orm:"-" json:"dstTunnelPort" validate:"omitempty"`
 }
 
