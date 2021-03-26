@@ -182,11 +182,8 @@ func ValidateIpv4Address(id string) error {
 	if id == "" {
 		return errors.New("require ip address")
 	}
-	if len(id) != 0 {
-		validate := validator.New()
-		return validate.Var(id, "required,ipv4")
-	}
-	return nil
+	validate := validator.New()
+	return validate.Var(id, "required,ipv4")
 }
 
 // Get MEP address
@@ -415,13 +412,9 @@ func ValidateUUID(id string) error {
 	if id == "" {
 		return errors.New("require app instance id")
 	}
-	if len(id) != 0 {
-		validate := validator.New()
-		res := validate.Var(id, "required,uuid")
-		if res != nil {
-			return errors.New("UUID validate failed")
-		}
-	} else {
+	validate := validator.New()
+	res := validate.Var(id, "required,uuid")
+	if res != nil {
 		return errors.New("UUID validate failed")
 	}
 	return nil
