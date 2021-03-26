@@ -50,7 +50,7 @@ type PgDb struct {
 }
 
 // Constructor of PluginAdapter
-func (db *PgDb) initOrmer() (err1 error) {
+func (db *PgDb) InitOrmer() (err1 error) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error("panic handled:", err)
@@ -143,7 +143,7 @@ func (db *PgDb) InitDatabase() error {
 		return errRunSyncdb
 	}
 
-	err := db.initOrmer()
+	err := db.InitOrmer()
 	if err != nil {
 		log.Error("Failed to init ormer")
 		return err
