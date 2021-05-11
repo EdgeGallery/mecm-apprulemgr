@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// Represents app rule config facade
+// AppRuleFacade Represents app rule config facade
 type AppRuleFacade struct {
 	appInstanceId string
 	restClient    iRestClient

@@ -39,6 +39,7 @@ func init() {
 	orm.RegisterModel(new(DstTunnelPort))
 }
 
+// AppdRule information
 type AppdRule struct {
 	AppdRuleId     string            `orm:"pk" json:"appdRuleId,omitempty"`
 	TenantId       string            `json:"tenantId,omitempty"`
@@ -51,14 +52,14 @@ type AppdRule struct {
 	SyncStatus     bool              `orm:"default(false)" json:"syncStatus,omitempty"`
 }
 
-// Stale appd rule which are deleted locally and pending to be synchronized to center.
+// StaleAppdRule Stale appd rule which are deleted locally and pending to be synchronized to center.
 type StaleAppdRule struct {
 	AppdRuleId     string            `orm:"pk" json:"appdRuleId,omitempty"`
 	TenantId       string            `json:"tenantId,omitempty"`
 	AppInstanceId  string            `json:"appInstanceId,omitempty"`
 }
 
-// Represents traffic rule model
+// AppTrafficRule Represents traffic rule model
 type AppTrafficRule struct {
 	TrafficRuleId    string           `orm:"pk" json:"trafficRuleId" validate:"required,max=128"`
 	FilterType       string           `json:"filterType" validate:"required,oneof=FLOW PACKET"`
@@ -68,7 +69,7 @@ type AppTrafficRule struct {
 	DstInterface     []DstInterface  `orm:"reverse(many);on_delete(set_null)" json:"dstInterface" validate:"omitempty,dive"`
 }
 
-// Destination interface
+// DstInterface Destination interface
 type DstInterface struct {
 	DstInterfaceId string          `orm:"pk" json:"dstInterfaceId" validate:"omitempty,max=128"`
 	InterfaceType  string          `json:"interfaceType" validate:"omitempty`
@@ -78,7 +79,7 @@ type DstInterface struct {
 	TunnelInfo     TunnelInfo     `orm:"reverse(one);on_delete(set_null)"`
 }
 
-// Tunnel information
+// TunnelInfo Tunnel information
 type TunnelInfo struct {
 	TunnelInfoId       string        `orm:"pk" json:"tunnelInfoId" validate:"omitempty,max=128"`
 	TunnelType         string        `json:"tunnelType" validate:"omitempty`
@@ -87,7 +88,7 @@ type TunnelInfo struct {
 	TunnelSpecificData string        `json:"tunnelSpecificData" validate:"omitempty`
 }
 
-// Represents traffic filter model
+// TrafficFilter Represents traffic filter model
 type TrafficFilter struct {
 	TrafficFilterId  string          `orm:"pk" json:"trafficFilterId" validate:"omitempty`
 	SrcAddress       []string        `orm:"-" json:"srcAddress" validate:"omitempty,dive,cidr"`
@@ -105,7 +106,7 @@ type TrafficFilter struct {
 	DstTunnelPort    []string        `orm:"-" json:"dstTunnelPort" validate:"omitempty"`
 }
 
-// Represents dns rule model
+// AppDnsRule Represents dns rule model
 type AppDnsRule struct {
 	DnsRuleId     string    `orm:"pk" json:"dnsRuleId" validate:"required,max=128"`
 	DomainName    string    `json:"domainName" validate:"required,max=128"`
@@ -114,7 +115,7 @@ type AppDnsRule struct {
 	TTL           int       `json:"ttl" validate:"omitempty,gte=0,max=4294967295"`
 }
 
-// Represents operation progress model
+// OperationProgressModel Represents operation progress model
 type OperationProgressModel struct {
 	TaskId        string `json:"taskId"`
 	AppInstanceId string `json:"appInstanceId"`
@@ -123,7 +124,7 @@ type OperationProgressModel struct {
 	Detailed      string `json:"detailed"`
 }
 
-// Represents operation failure model
+// OperationFailureModel Represents operation failure model
 type OperationFailureModel struct {
 	Type   string `json:"type"`
 	Title  string `json:"title"`
@@ -132,23 +133,22 @@ type OperationFailureModel struct {
 }
 
 
-// Appd rule updated record synchronization model.
+// SyncUpdatedRulesRecs Appd rule updated record synchronization model.
 type SyncUpdatedRulesRecs struct {
 	AppdRuleUpdatedRecs []AppdRule `json:"appdRuleUpdatedRecs"`
 }
 
-// Appd rule updated record synchronization model.
+// SyncUpdatedRulesRecords Appd rule updated record synchronization model.
 type SyncUpdatedRulesRecords struct {
 	AppdRuleUpdatedRecs []AppdRuleRec `json:"appdRuleUpdatedRecs"`
 }
 
-// Appd rule updated record synchronization model.
+// SyncDeletedRulesRecords Appd rule updated record synchronization model.
 type SyncDeletedRulesRecords struct {
 	AppdRuleDeletedRecs []StaleAppdRule `json:"appdRuleDeletedRecs"`
 }
 
-
-// Db Models
+// AppdRuleRec information
 type AppdRuleRec struct {
 	AppdRuleId     string            `orm:"pk" json:"appdRuleId,omitempty"`
 	TenantId       string            `json:"tenantId,omitempty"`
@@ -161,7 +161,7 @@ type AppdRuleRec struct {
 	SyncStatus     bool              `orm:"default(false)" json:"syncStatus,omitempty"`
 }
 
-// Represents traffic rule model
+// AppTrafficRuleRec Represents traffic rule model
 type AppTrafficRuleRec struct {
 	TrafficRuleId    string           `orm:"pk" json:"trafficRuleId" validate:"required,max=128"`
 	FilterType       string           `json:"filterType" validate:"required,oneof=FLOW PACKET"`
@@ -172,7 +172,7 @@ type AppTrafficRuleRec struct {
 	AppdRule         *AppdRuleRec        `orm:"rel(fk)"`
 }
 
-// Destination interface
+// DstInterfaceRec Destination interface
 type DstInterfaceRec struct {
 	DstInterfaceId string          `orm:"pk" json:"dstInterfaceId" validate:"omitempty,max=128"`
 	InterfaceType  string          `json:"interfaceType" validate:"omitempty`
@@ -183,7 +183,7 @@ type DstInterfaceRec struct {
 	AppTrafficRuleRec *AppTrafficRuleRec `orm:"rel(fk)"`
 }
 
-// Tunnel information
+// TunnelInfoRec Tunnel information
 type TunnelInfoRec struct {
 	TunnelInfoId       string        `orm:"pk" json:"tunnelInfoId" validate:"omitempty,max=128"`
 	TunnelType         string        `json:"tunnelType" validate:"omitempty`
@@ -193,7 +193,7 @@ type TunnelInfoRec struct {
 	DstInterfaceRec       *DstInterfaceRec `orm:"rel(one)"`
 }
 
-// Represents traffic filter model
+// TrafficFilterRec Represents traffic filter model
 type TrafficFilterRec struct {
 	TrafficFilterId  string          `orm:"pk" json:"trafficFilterId" validate:"omitempty`
 	SrcAddress       []*SrcAddress    `orm:"reverse(many);on_delete(set_null)" json:"SrcAddress" validate:"omitempty,dive,cidr"`
@@ -212,7 +212,7 @@ type TrafficFilterRec struct {
 	AppTrafficRuleRec   *AppTrafficRuleRec `orm:"rel(fk)"`
 }
 
-// Represents dns rule model
+// AppDnsRuleRec Represents dns rule model
 type AppDnsRuleRec struct {
 	DnsRuleId     string    `orm:"pk" json:"dnsRuleId" validate:"required,max=128"`
 	DomainName    string    `json:"domainName" validate:"required,max=128"`
@@ -222,53 +222,61 @@ type AppDnsRuleRec struct {
 	AppdRule      *AppdRuleRec `orm:"rel(fk)"`
 }
 
+// SrcAddress Represents source address
 type SrcAddress struct {
 	SrcAddress string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// SrcPort Represents source port
 type SrcPort struct {
 	SrcPort string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
-
+// DstAddress Represents destination address
 type DstAddress struct {
 	DstAddress string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
-
+// DstPort Represents destination port
 type DstPort struct {
 	DstPort string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// Protocol Represents protocol
 type Protocol struct {
 	Protocol string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// Tag Represents Tag
 type Tag struct {
 	Tag string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// SrcTunnelAddress Represents Source tunnel address
 type SrcTunnelAddress struct {
 	SrcTunnelAddress string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// DstTunnelAddress Represents destination tunnel address
 type DstTunnelAddress struct {
 	DstTunnelAddress string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// SrcTunnelPort Represents source tunnel port
 type SrcTunnelPort struct {
 	SrcTunnelPort string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
 
+// DstTunnelPort Represents destination tunnel port
 type DstTunnelPort struct {
 	DstTunnelPort string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`

@@ -105,6 +105,7 @@ const (
 	AppRuleConfigPath   string = "/tenants/:tenantId/app_instances/:appInstanceId/appd_configuration"
 	AppRuleSyncPath     string = "/tenants/:tenantId/app_instances/appd_configuration"
 	RequestBodyLength          = 4096
+	NameRegex     = "^[\\d\\p{L}]*$|^[\\d\\p{L}][\\d\\p{L}_\\-]*[\\d\\p{L}]$"
 )
 
 var cipherSuiteMap = map[string]uint16{
@@ -495,4 +496,12 @@ func RateLimit(r *RateLimiter, ctx *context.Context) {
 
 func GenerateUniqueId() string {
 	return uuid.NewV4().String()
+}
+
+// ValidateName validate name
+func ValidateName(name string, regex string) (bool, error) {
+	if len(name) > 128 {
+		return false, errors.New("name length is larger than max size")
+	}
+	return regexp.MatchString(regex, name)
 }

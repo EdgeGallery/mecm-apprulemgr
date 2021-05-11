@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package controllers
 
 import (
@@ -20,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Init Db adapter
+// GetDbAdapter Init Db adapter
 func GetDbAdapter() (Database, error) {
 	log.Info("In get db adaper")
 

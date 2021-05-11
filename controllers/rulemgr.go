@@ -39,30 +39,30 @@ const (
 	applicationJson                 = "application/json"
 )
 
-// Application Rule Controller
+// AppRuleController Application Rule Controller
 type AppRuleController struct {
 	beego.Controller
 	Db Database
 }
 
-// Heath Check
+// HealthCheck information
 func (c *AppRuleController) HealthCheck() {
 	_, _ = c.Ctx.ResponseWriter.Write([]byte("ok"))
 }
 
-// Configures app rule
+// CreateAppRuleConfig Configures app rule
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
 	c.handleAppRuleConfig(util.Post)
 }
 
-// Updates app rule configuration
+// UpdateAppRuleConfig Updates app rule configuration
 func (c *AppRuleController) UpdateAppRuleConfig() {
 	log.Info("Application Rule Config update request received.")
 	c.handleAppRuleConfig(util.Put)
 }
 
-// Deletes app rule configuration
+// DeleteAppRuleConfig Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
@@ -115,7 +115,7 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 	c.writeResponse(progressModelBytes, response.code)
 }
 
-// Returns app rule configuration
+// GetAppRuleConfig Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole}, true)
@@ -285,6 +285,11 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	}
 
 	origin := c.Ctx.Request.Header.Get("origin")
+	originVar, err := util.ValidateName(origin, util.NameRegex)
+	if err != nil || !originVar {
+		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
+		return
+	}
 
 	syncStatus := true
 	if origin == "MEPM" {
@@ -335,7 +340,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	c.writeResponse(progressModelBytes, response.code)
 }
 
-// Synchronize added or update records
+// SynchronizeUpdatedRecords Synchronize added or update records
 func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	log.Info("Sync app config request received.")
 
@@ -355,7 +360,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	c.sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs, appdRulesSync, clientIp)
 }
 
-// Synchronize deleted records
+// SynchronizeDeletedRecords Synchronize deleted records
 func (c *AppRuleController) SynchronizeDeletedRecords() {
 	log.Info("Sync deleted app rule records request received.")
 
@@ -369,9 +374,7 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 		c.handleLoggingForSyncError(clientIp, code, err.Error())
 		return
 	}
-	_, _ = c.Db.QueryTable("stale_appd_rule").Filter("tenant_id",
-		c.Ctx.Input.Param(util.TenantId)).All(&staleRules)
-
+	_, _ = c.Db.QueryTable("stale_appd_rule", &staleRules, "tenant_id", c.Ctx.Input.Param(util.TenantId))
 	syncDeletedRulesRecords.AppdRuleDeletedRecs = append(syncDeletedRulesRecords.AppdRuleDeletedRecs, staleRules...)
 	appRuleModelBytes, err := json.Marshal(syncDeletedRulesRecords)
 	if err != nil {
@@ -780,7 +783,7 @@ func (c *AppRuleController) getAppdRuleSyncInfo() []models.AppdRuleRec {
 	var appdRulesSync []models.AppdRuleRec
 
 	// Error handling to be further improved
-	_, _ = c.Db.QueryTable(appdRule).Filter("tenant_id", c.Ctx.Input.Param(util.TenantId)).All(&appdRulesRec)
+	_, _ = c.Db.QueryTable(appdRule, &appdRulesRec, "tenant_id", c.Ctx.Input.Param(util.TenantId))
 	for _, appdRuleRec := range appdRulesRec {
 		_, _ = c.Db.LoadRelated(&appdRuleRec, "AppTrafficRuleRec")
 		_, _ = c.Db.LoadRelated(&appdRuleRec, "AppDnsRuleRec")
@@ -835,7 +838,7 @@ func (c *AppRuleController) sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models
 	}
 }
 
-// Get traffice filter information
+// Get traffic filter information
 func (c *AppRuleController) getTrafficFilterInfo(trafficFilter *models.TrafficFilterRec) models.TrafficFilter {
 	var srcAddress           []string
 	var srcPorts             []string
