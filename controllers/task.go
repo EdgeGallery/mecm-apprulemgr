@@ -66,7 +66,7 @@ func (t *Task) handleTaskQuery() (*Response, error) {
 			log.Info(util.AppRuleConfigSuccess)
 			return response, nil
 		} else if response.progressModel.ConfigResult == util.Failure {
-			log.Info(util.AppRuleConfigFailed)
+			log.Error(util.AppRuleConfigFailed)
 			response.code = util.InternalServerError
 			return response, nil
 		}

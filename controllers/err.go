@@ -18,12 +18,12 @@ package controllers
 
 import "github.com/astaxie/beego"
 
-// Error controller
+// ErrorController info
 type ErrorController struct {
 	beego.Controller
 }
 
-// Error handling for invalid request
+// Error404 Error handling for invalid request
 func (c *ErrorController) Error404() {
 	c.Data["content"] = "page not found"
 	c.TplName = "error/404.tpl"

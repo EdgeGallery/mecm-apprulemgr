@@ -31,14 +31,14 @@ type iRestClient interface {
 	sendRequest() (*http.Response, error)
 }
 
-// Represents RestClient model
+// RestClient Represents RestClient model
 type RestClient struct {
 	url    string
 	method string
 	body   []byte
 }
 
-// Creates new rest client
+// CreateRestClient Creates new rest client
 func CreateRestClient(url string, method string, body []byte) *RestClient {
 	return &RestClient{
 		url:    url,
@@ -79,7 +79,7 @@ func createRequest(url string, method string, body []byte) (*http.Request, error
 	}
 }
 
-// Represents response model
+// Response Represents response model
 type Response struct {
 	code          int
 	progressModel *models.OperationProgressModel
@@ -106,13 +106,14 @@ func createGetResponse(httpStatusCode int, appdRule *models.AppdRule) *Response 
 func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response, error) {
 	mepResponse, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
-		log.Info("failed to read mep response body")
+		log.Error("failed to read mep response body")
 		return nil, err
 	}
 
 	if httpResponse.StatusCode == http.StatusOK {
 		var operationProgressModel *models.OperationProgressModel
 		if err = json.Unmarshal(mepResponse, &operationProgressModel); err != nil {
+			log.Error("failed to unmarshal")
 			return nil, err
 		}
 		return createResponse(httpResponse.StatusCode, operationProgressModel), nil
@@ -120,6 +121,7 @@ func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response
 
 	var operationFailureModel *models.OperationFailureModel
 	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
+		log.Error("failed to unmarshal")
 		return nil, err
 	}
 	return createResponse(httpResponse.StatusCode,
@@ -130,7 +132,7 @@ func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response
 func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Response, error) {
 	mepResponse, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
-		log.Info("failed to read mep response body")
+		log.Error("failed to read mep response body")
 		return nil, err
 	}
 

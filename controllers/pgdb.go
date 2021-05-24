@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// db controller
 package controllers
 
 import (
@@ -41,15 +40,14 @@ const (
 	lowerCaseRegex   string = `[a-z]`
 	upperCaseRegex   string = `[A-Z]`
 	maxPasswordCount        = 2
-	maxIdLength             = 32
 )
 
-// Pg database
+// PgDb database
 type PgDb struct {
 	ormer orm.Ormer
 }
 
-// Constructor of PluginAdapter
+// InitOrmer Constructor of PluginAdapter
 func (db *PgDb) InitOrmer() (err1 error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -67,37 +65,41 @@ func (db *PgDb) InitOrmer() (err1 error) {
 	return nil
 }
 
-// Insert or update data into lcmcontroller
+// InsertOrUpdateData into app rule mgr
 func (db *PgDb) InsertOrUpdateData(data interface{}, cols ...string) (err error) {
 	_, err = db.ormer.InsertOrUpdate(data, cols...)
 	return err
 }
 
-// Read data from lcmcontroller
+// ReadData from app rule mgr
 func (db *PgDb) ReadData(data interface{}, cols ...string) (err error) {
 	err = db.ormer.Read(data, cols...)
 	return err
 }
 
-// Delete data from lcmcontroller
+// DeleteData from app rule mgr
 func (db *PgDb) DeleteData(data interface{}, cols ...string) (err error) {
 	_, err = db.ormer.Delete(data, cols...)
 	return err
 }
 
-// return a raw query setter for raw sql string.
-func (db *PgDb) QueryTable(tableName string) orm.QuerySeter {
-	results := db.ormer.QueryTable(tableName)
-	return results
+// QueryTable return a raw query setter for raw sql string.
+func (db *PgDb) QueryTable(tableName string, container interface{}, field string, container1 ...interface{}) (num int64, err error) {
+	if field != "" {
+		num, err = db.ormer.QueryTable(tableName).Filter(field, container1).All(container)
+	} else {
+		num, err = db.ormer.QueryTable(tableName).All(container)
+	}
+	return num, err
 }
 
-// Load Related
+// LoadRelated table
 func (db *PgDb) LoadRelated(md interface{}, name string) (int64, error) {
 	num, err := db.ormer.LoadRelated(md, name)
 	return num, err
 }
 
-// Init database
+// InitDatabase database
 func (db *PgDb) InitDatabase() error {
 	dbUser := getDbUser()
 	dbPwd := []byte(os.Getenv("APPRULEMGR_DB_PASSWORD"))
@@ -179,13 +181,6 @@ func getDbPort() string {
 // Get app configuration
 func getAppConfig(k string) string {
 	return beego.AppConfig.String(k)
-}
-
-// Clear byte array from memory
-func ClearByteArray(data []byte) {
-	for i := 0; i < len(data); i++ {
-		data[i] = 0
-	}
 }
 
 // Validate password

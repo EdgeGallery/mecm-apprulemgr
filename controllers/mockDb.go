@@ -17,7 +17,6 @@
 package controllers
 
 import (
-	"github.com/astaxie/beego/orm"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,8 +41,8 @@ func (db *MockDb) DeleteData(data interface{}, cols ...string) (err error) {
 }
 
 // return a raw query setter for raw sql string.
-func (db *MockDb) QueryTable(tableName string) orm.QuerySeter {
-	return nil
+func (db *MockDb) QueryTable(tableName string, container interface{}, field string, container1 ...interface{}) (int64, error) {
+	return 0, nil
 }
 
 // Load Related
