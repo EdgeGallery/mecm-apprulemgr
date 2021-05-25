@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# validate name
+validate_name() {
+  hostname="$1"
+  len="${#hostname}"
+  if [ "${len}" -gt "64" ]; then
+    return 1
+  fi
+  if ! echo "$hostname" | grep -qE '^[a-zA-Z0-9]*$|^[a-zA-Z0-9][a-zA-Z0-9_\-]*[a-zA-Z0-9]$'; then
+    return 1
+  fi
+  return 0
+}
+
 # validates whether file exist
 validate_file_exists() {
   file_path="$1"
@@ -207,6 +221,7 @@ fi
 
 sed -i "s/^HTTPSAddr.*=.*$/HTTPSAddr = $(hostname -i)/g" conf/app.conf
 sed -i "s/^dbAdapter.*=.*$/dbAdapter = ${APPRULEMGR_DB_ADAPTER}/g" conf/app.conf
+sed -i "s/^isHTTPS.*=.*$/isHTTPS = $(IS_HTTPS)/g" conf/app.conf
 
 cd /usr/app
 umask 0027

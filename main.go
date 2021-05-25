@@ -36,7 +36,7 @@ import (
 // Start application rule manager application
 func main() {
 	r := &util.RateLimiter{}
-	rate, err := limiter.NewRateFromFormatted("200-S")
+	rate, _ := limiter.NewRateFromFormatted("200-S")
 	r.GeneralLimiter = limiter.New(memory.NewStore(), rate)
 
 	beego.InsertFilter("/*", beego.BeforeRouter, func(c *context.Context) {
@@ -56,14 +56,15 @@ func main() {
 		w.Write([]byte("Too Many Requests"))
 		return
 	})
+	if util.GetAppConfig("isHTTPS") == "true" {
+		tlsConf, err := util.TLSConfig("HTTPSCertFile")
+		if err != nil {
+			log.Error("failed to config tls for beego")
+			return
+		}
 
-	tlsConf, err := util.TLSConfig("HTTPSCertFile")
-	if err != nil {
-		log.Error("failed to config tls for beego")
-		return
+		beego.BeeApp.Server.TLSConfig = tlsConf
 	}
-
-	beego.BeeApp.Server.TLSConfig = tlsConf
 	beego.ErrorController(&controllers.ErrorController{})
 	beego.Run()
 }
