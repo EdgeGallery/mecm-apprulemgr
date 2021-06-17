@@ -43,6 +43,7 @@ func createAppRuleFacade(restClient *RestClient, appInstanceId string) *AppRuleF
 func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 	httpResponse, err := a.restClient.sendRequest()
 	if err != nil {
+		log.Error("failed to send request")
 		return nil, err
 	}
 	defer httpResponse.Body.Close()
@@ -53,6 +54,7 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 	}
 
 	if response.code != http.StatusOK {
+		log.Error("the response code is not success")
 		return response, nil
 	}
 
@@ -60,7 +62,7 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 		log.Info(util.AppRuleConfigSuccess)
 		return response, nil
 	} else if response.progressModel.ConfigResult == util.Failure {
-		log.Info(util.AppRuleConfigFailed)
+		log.Error(util.AppRuleConfigFailed)
 		response.code = util.InternalServerError
 		return response, nil
 	}
@@ -75,6 +77,7 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 func (a *AppRuleFacade) handleAppRuleGetRequest() (*Response, error) {
 	httpResponse, err := a.restClient.sendRequest()
 	if err != nil {
+		log.Error("failed to send request")
 		return nil, err
 	}
 	defer httpResponse.Body.Close()
@@ -91,6 +94,7 @@ func createRestClient(url string, method string, rule *models.AppdRule) (*RestCl
 	if method == util.Post || method == util.Put {
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
+			log.Error("failed to marshal app rule model")
 			return nil, errors.New(util.MarshalAppRuleModelError)
 		}
 		return CreateRestClient(url, method, appRuleConfigBytes), nil

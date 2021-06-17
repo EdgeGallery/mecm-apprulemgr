@@ -15,7 +15,7 @@
  */
 
 // Beego log related configurations
-package config
+package log
 
 import (
 	"mecm-apprulemgr/util"

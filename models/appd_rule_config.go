@@ -281,5 +281,3 @@ type DstTunnelPort struct {
 	DstTunnelPort string `orm:"pk"`
 	TrafficFilterRec *TrafficFilterRec `orm:"rel(fk)"`
 }
-
-
