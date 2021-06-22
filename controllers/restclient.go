@@ -51,11 +51,13 @@ func CreateRestClient(url string, method string, body []byte) *RestClient {
 func (r *RestClient) sendRequest() (*http.Response, error) {
 	request, err := createRequest(r.url, r.method, r.body)
 	if err != nil {
+		log.Error("failed to create request")
 		return nil, err
 	}
 
 	response, err := util.DoRequest(request)
 	if err != nil {
+		log.Error("failed to send request")
 		return nil, err
 	}
 
@@ -139,6 +141,7 @@ func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Respo
 	if httpResponse.StatusCode == http.StatusOK {
 		var appRuleModel *models.AppdRule
 		if err = json.Unmarshal(mepResponse, &appRuleModel); err != nil {
+			log.Error("failed to unmarshal")
 			return nil, err
 		}
 		return createGetResponse(httpResponse.StatusCode, appRuleModel), nil
@@ -146,6 +149,7 @@ func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Respo
 
 	var operationFailureModel *models.OperationFailureModel
 	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
+		log.Error("failed to unmarshal")
 		return nil, err
 	}
 	return createResponse(httpResponse.StatusCode, util.CreateOperationProgressModel(appInstanceId,

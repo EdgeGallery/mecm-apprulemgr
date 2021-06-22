@@ -216,11 +216,13 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 	}
 	var appRuleConfig *models.AppdRule
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &appRuleConfig); err != nil {
+		log.Error("failed to unmarshal")
 		return nil, errors.New(util.UnMarshalAppRuleModelError)
 	}
 
 	err := util.ValidateRestBody(appRuleConfig)
 	if err != nil {
+		log.Error("failed to validate rest body")
 		return nil, err
 	}
 
@@ -265,6 +267,11 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 	}
 
 	appInstanceId := c.Ctx.Input.Param(util.AppInstanceId)
+	err = util.ValidateUUID(appInstanceId)
+	if err != nil {
+		c.handleLoggingForError(code, err.Error(), "")
+		return
+	}
 	appRuleConfig, err := c.validateAppRuleModel()
 	if err != nil {
 		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
@@ -298,6 +305,11 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 
 	// Add all UUID
 	tenantId := c.Ctx.Input.Param(util.TenantId)
+	err = util.ValidateUUID(tenantId)
+	if err != nil {
+		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
+		return
+	}
 
 	appdRuleRecord := &models.AppdRuleRec{
 		AppdRuleId: tenantId+appInstanceId,
@@ -324,11 +336,13 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 
 	err = c.insertOrUpdateAppTrafficRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
 	if err != nil {
+		log.Error("failed to insert app traffic rule record")
 		return
 	}
 
 	err = c.insertOrUpdateAppDnsRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
 	if err != nil {
+		log.Error("failed to insert dns rule record")
 		return
 	}
 
@@ -369,6 +383,11 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 
 
 	clientIp := c.Ctx.Input.IP()
+	err := util.ValidateIpv4Address(clientIp)
+	if err != nil {
+		c.writeSyncErrorResponse("invalid ip address", util.BadRequest)
+		return
+	}
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
 		c.handleLoggingForSyncError(clientIp, code, err.Error())
@@ -727,6 +746,7 @@ func (c *AppRuleController) insertOrUpdateTrafficFltrRec(appRule models.AppTraff
 		}
 		err :=c.insertOrUpdateTrafficFltrChildRecs(filter, trafficFilterRec, appInstanceId)
 		if err != nil {
+			log.Error("failed to insert child records")
 			return err
 		}
 

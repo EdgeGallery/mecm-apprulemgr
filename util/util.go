@@ -273,17 +273,17 @@ func ValidateAccessToken(accessToken string, allowedRoles []string, tenantId str
 		}
 	} else if er, ok := err.(*jwt.ValidationError); ok {
 		if er.Errors&jwt.ValidationErrorMalformed != 0 {
-			log.Info("Invalid token")
+			log.Error("Invalid token")
 			return errors.New(InvalidToken)
 		} else if er.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-			log.Infof("token expired or inactive")
+			log.Error("token expired or inactive")
 			return errors.New("token expired or inactive")
 		} else {
-			log.Info("Couldn't handle this token: ", err)
+			log.Error("Couldn't handle this token: ", err)
 			return errors.New(err.Error())
 		}
 	} else {
-		log.Info("Couldn't handle this token: ", err)
+		log.Error("Couldn't handle this token: ", err)
 		return errors.New(err.Error())
 	}
 
@@ -294,7 +294,7 @@ func ValidateAccessToken(accessToken string, allowedRoles []string, tenantId str
 // Validate token claims
 func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string, userRequestTenantId string) error {
 	if claims["authorities"] == nil {
-		log.Info("Invalid token A")
+		log.Error("Invalid token A")
 		return errors.New(InvalidToken)
 	}
 
@@ -304,16 +304,16 @@ func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string, userReques
 	}
 
 	if claims["userId"] == nil {
-		log.Info("Invalid token UI")
+		log.Error("Invalid token UI")
 		return errors.New(InvalidToken)
 	}
 	if claims["user_name"] == nil {
-		log.Info("Invalid token UN")
+		log.Error("Invalid token UN")
 		return errors.New(InvalidToken)
 	}
 	err = claims.Valid()
 	if err != nil {
-		log.Info("token expired")
+		log.Error("token expired")
 		return errors.New(InvalidToken)
 	}
 	if userRequestTenantId != "" {
@@ -326,8 +326,6 @@ func validateTokenClaims(claims jwt.MapClaims, allowedRoles []string, userReques
 }
 
 func ValidateUserIdFromRequest(claims jwt.MapClaims, userIdFromRequest string) error {
-	userIdFromToken := ""
-	log.Info(userIdFromToken)
 
 	for key, value := range claims {
 		if key == "userId" {
@@ -343,7 +341,6 @@ func ValidateUserIdFromRequest(claims jwt.MapClaims, userIdFromRequest string) e
 
 func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 	roleName := "defaultRole"
-	log.Info(roleName)
 
 	for key, value := range claims {
 		if key == "authorities" {
@@ -363,7 +360,7 @@ func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 			}
 			err := isValidUser(roleName, allowedRoles)
 			if err != nil {
-				log.Info("not authorised user")
+				log.Error("not authorised user")
 				return err
 			}
 		}
@@ -373,7 +370,7 @@ func ValidateRole(claims jwt.MapClaims, allowedRoles []string) error {
 
 func isValidUser(roleName string, allowedRoles []string) error {
 	if !isRoleAllowed(roleName, allowedRoles) {
-		log.Info("Invalid token Authorities")
+		log.Error("Invalid token Authorities")
 		if roleName == MecmGuestRole {
 			return errors.New(Forbidden)
 		}
@@ -488,7 +485,7 @@ func RateLimit(r *RateLimiter, ctx *context.Context) {
 	h.Add("X-RateLimit-Reset", strconv.FormatInt(limiterCtx.Reset, 10))
 
 	if limiterCtx.Reached {
-		log.Infof("Too Many Requests on %s", ctx.Input.URL())
+		log.Errorf("Too Many Requests on %s", ctx.Input.URL())
 		ctx.Abort(http.StatusTooManyRequests, "429")
 		return
 	}

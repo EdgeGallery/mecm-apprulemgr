@@ -49,6 +49,7 @@ func (t *Task) handleTaskQuery() (*Response, error) {
 	for i := 0; i < t.retryLimit; i++ {
 		httpResponse, err := t.restClient.sendRequest()
 		if err != nil {
+			log.Error("failed to send request")
 			return nil, err
 		}
 		defer httpResponse.Body.Close()
@@ -59,6 +60,7 @@ func (t *Task) handleTaskQuery() (*Response, error) {
 		}
 
 		if response.code != http.StatusOK {
+			log.Error("the response code is not success")
 			return response, nil
 		}
 

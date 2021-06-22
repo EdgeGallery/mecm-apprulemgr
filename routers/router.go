@@ -19,6 +19,7 @@ package routers
 
 import (
 	"github.com/astaxie/beego"
+	log "github.com/sirupsen/logrus"
 	"mecm-apprulemgr/controllers"
 	"mecm-apprulemgr/util"
 	"os"
@@ -42,6 +43,7 @@ func init() {
 func initDbAdapter() (pgDb controllers.Database) {
 	adapter, err := controllers.GetDbAdapter()
 	if err != nil {
+		log.Error("failed to get database adapter")
 		os.Exit(1)
 	}
 	return adapter

@@ -113,6 +113,7 @@ func (db *PgDb) InitDatabase() error {
 	util.ClearByteArray(dbPwd)
 	dbParamsAreValid, validateDbParamsErr := validateDbParams(dbPwdStr)
 	if validateDbParamsErr != nil || !dbParamsAreValid {
+
 		return errors.New("failed to validate db parameters")
 	}
 	registerDriverErr := orm.RegisterDriver(driverName, orm.DRPostgres)
