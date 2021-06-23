@@ -52,4 +52,6 @@ func TestGetDbAdapterSuccess(t *testing.T) {
 	db := &PgDb{}
 	err := db.InitDatabase()
 	assert.Nil(t, err, "TestGetDbAdapterSuccess execution result")
+
 }
+

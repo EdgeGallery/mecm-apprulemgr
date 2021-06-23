@@ -237,7 +237,6 @@ func DoRequest(req *http.Request) (*http.Response, error) {
 		TLSClientConfig: config,
 	}
 	client := &http.Client{Transport: tr}
-
 	return client.Do(req)
 }
 
