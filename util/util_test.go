@@ -18,9 +18,12 @@ package util
 
 import (
 	"encoding/json"
+	"github.com/astaxie/beego"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 	"mecm-apprulemgr/models"
+	"net/http"
+	"os"
 	"testing"
 	"time"
 )
@@ -30,33 +33,46 @@ const (
 	tenantId = userId
 )
 
-func createToken(userid string) string {
+func createToken(userid string, role string, isRole bool, isUserId bool) string {
 	//Creating Access Token
 	atClaims := jwt.MapClaims{}
 	roleName := make([]string, 3)
-	roleName[0] = "ROLE_MECM_TENANT"
-	roleName[1] = "ROLE_APPSTORE_TENANT"
-	roleName[2] = "ROLE_DEVELOPER_TENANT"
+	if isRole == true {
+		roleName[0] = role
+		roleName[1] = "ROLE_APPSTORE_TENANT"
+		roleName[2] = "ROLE_DEVELOPER_TENANT"
+	} else {
+		roleName = nil
+	}
 	atClaims["authorities"] = roleName
-	atClaims["user_name"] = "lcmcontroller"
+	if isUserId == true {
+		atClaims["user_name"] = "lcmcontroller"
+	} else {
+		atClaims["user_name"] = nil
+	}
 	atClaims["authorized"] = true
-	atClaims["userId"] = userid
+	if userid != "" {
+		atClaims["userId"] = userid
+	} else {
+		atClaims["userId"] = nil
+	}
 	atClaims["exp"] = time.Now().Add(time.Minute * 60).Unix()
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	token, _ := at.SignedString([]byte("jdnfksdmfksd"))
 	return token
 }
 
-func TestValidateAccessTokenSuccess(t *testing.T) {
-	accessToken := createToken(userId)
-	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
-	assert.Nil(t, err, "TestValidateAccessTokenSuccess execution result")
+
+func TestValidateAccessTokenRole(t *testing.T) {
+	accessToken := createToken("1", "ROLE_MECM_GUEST", false, true)
+	err := ValidateAccessToken(accessToken, []string{MecmGuestRole, MecmAdminRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenSuccess execution result")
 }
 
-func TestValidateAccessTokenFailure(t *testing.T) {
-	accessToken := ""
-	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
-	assert.Nil(t, err, "TestValidateAccessTokenFailure execution result")
+func TestValidateAccessTokenGuest(t *testing.T) {
+	accessToken := createToken(tenantId, "ROLE_MECM_GUEST", true, true)
+	err := ValidateAccessToken(accessToken, []string{MecmGuestRole, MecmAdminRole}, tenantId)
+	assert.Nil(t, err, "TestValidateAccessTokenSuccess execution result")
 }
 
 func TestValidateAccessTokenInvalid(t *testing.T) {
@@ -102,6 +118,56 @@ func TestValidateUUIDFailure(t *testing.T) {
 	uId := ""
 	err := ValidateUUID(uId)
 	assert.Error(t, err, "TestValidateUUIDFailure execution result")
+}
+
+
+func TestValidateAccessTokenSuccess(t *testing.T) {
+	accessToken := createToken(userId, "ROLE_MECM_TENANT", true, true)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Nil(t, err, "TestValidateAccessTokenSuccess execution result")
+}
+
+func TestValidateAccessTokenFailure(t *testing.T) {
+	accessToken := ""
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Nil(t, err, "TestValidateAccessTokenFailure execution result")
+}
+
+func TestValidateAccessTokenFailure1(t *testing.T) {
+	accessToken := createToken("1", "ROLE_MECM_TENANT", true, true)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Equal(t, "illegal TenantId", err.Error(), "TestValidateAccessTokenFailure1 execution result")
+}
+
+func TestValidateAccessTokenFailure2(t *testing.T) {
+	accessToken := createToken("1", "ROLE_MECM_TENANT", false, true)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenFailure2 execution result")
+}
+
+func TestValidateAccessTokenFailure3(t *testing.T) {
+	accessToken := createToken("", "ROLE_MECM_TENANT", true, true)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenFailure3 execution result")
+}
+
+func TestValidateAccessTokenFailure4(t *testing.T) {
+	accessToken := createToken(userId, "ROLE_MECM_TENANT", true, false)
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenFailure4 execution result")
+}
+
+func TestValidateAccessTokenFailure5(t *testing.T) {
+	accessToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpdGllcyI6WyJST0xFX01FQ01fQURNSU4iLCJST0xFX01FQ01fVEVOQU5UIiwiUk9MRV9BUFBTVE9SRV9URU5BTlQiLCJST0xFX0RFVkVMT1BFUl9URU5BTlQiXSwiYXV0aG9yaXplZCI6dHJ1ZSwiZXhwIjoxNjIzODU5MDg3LCJ1c2VySWQiOiJjOWZhNjA2OS0yODQ1LTQ2MmQtOGE2ZS1iOGE1MDFhNjNhZTIiLCJ1c2VyX25hbWUiOiJsY21jb250cm9sbGVyIn0.uZOnmni-wBKNH7XGr4u0nBtKLr_gYkvoP0zp3z0fWag"
+	err := ValidateAccessToken(accessToken, []string{MecmTenantRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenFailure5 execution result")
+}
+
+
+func TestValidateAccessTokenFailure6(t *testing.T) {
+	accessToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpdGllcyI6WyJST0xFX01FQ01fQURNSU4iLCJST0xFX01FQ01fVEVOQU5UIiwiUk9MRV9BUFBTVE9SRV9URU5BTlQiLCJST0xFX0RFVkVMT1BFUl9URU5BTlQiXSwiYXV0aG9yaXplZCI6dHJ1ZSwiZXhwIjoxNjIzODU5MDg3LCJ1c2VySWQiOiJjOWZhNjA2OS0yODQ1LTQ2MmQtOGE2ZS1iOGE1MDFhNjNhZTIiLCJ1c2VyX25hbWUiOiJsY21jb250cm9sbGVyIn0.uZOnmni-wBKNH7XGr4u0nBtKLr_gYkvoP0zp3z0fWag"
+	err := ValidateAccessToken(accessToken, []string{MecmAdminRole}, tenantId)
+	assert.Equal(t, "invalid token", err.Error(), "TestValidateAccessTokenFailure6 execution result")
 }
 
 func TestTLSConfig(t *testing.T) {
@@ -319,4 +385,76 @@ func TestValidateRestBody2(t *testing.T) {
 		err := ValidateRestBody(appRuleConfig)
 		assert.Error(t, err)
 	})
+
+	t.Run("TestValidateName", func(t *testing.T) {
+		_, err := ValidateName("abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5"+
+			"abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5abcd5", NameRegex)
+		assert.Equal(t, "name length is larger than max size", err.Error())
+	})
+
+	t.Run("TestTLSConfig1", func(t *testing.T) {
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("certName", getwd + "/server.crt")
+		beego.AppConfig.Set("ssl_ciphers",
+			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+		crtName := "certName"
+		_, err := TLSConfig(crtName)
+		//assert.Nil(t, (t, "TLS cipher configuration is not recommended or invalid", err.Error(), "TestTLSConfig execution result"))
+		assert.Nil(t, err,"TestTLSConfig1 execution result")
+	})
+
+	t.Run("TestTLSConfig2", func(t *testing.T) {
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("certName", getwd + "/server1.crt")
+		crtName := "certName"
+		_, err := TLSConfig(crtName)
+		assert.NotNil(t, err,"TestTLSConfig2 execution result")
+	})
+
+	t.Run("TestTLSConfig3", func(t *testing.T) {
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("certName", getwd + "/server.crt")
+		beego.AppConfig.Set("ssl_ciphers","")
+		crtName := "certName"
+		_, err := TLSConfig(crtName)
+		assert.Equal(t, "TLS cipher configuration is not recommended or invalid", err.Error(),"TestTLSConfig3 execution result")
+	})
+
+	t.Run("TestTLSConfig4", func(t *testing.T) {
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("certName", getwd + "/server.crt")
+		beego.AppConfig.Set("ssl_ciphers",", TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+		crtName := "certName"
+		_, err := TLSConfig(crtName)
+		assert.Nil(t, err,"TestTLSConfig4 execution result")
+	})
+
+	t.Run("TestTLSConfig5", func(t *testing.T) {
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("certName", getwd + "/server.crt")
+		beego.AppConfig.Set("ssl_ciphers",", ")
+		crtName := "certName"
+		_, err := TLSConfig(crtName)
+		assert.Equal(t, "TLS cipher configuration is not recommended or invalid", err.Error(),"TestTLSConfig5 execution result")
+	})
+
+	t.Run("DoRequest", func(t *testing.T) {
+
+		url := "http://" + "127.0.0.1" + ":" + "80" + "/example"
+		req, _ := http.NewRequest("DELETE", url, nil)
+
+		getwd, _ := os.Getwd()
+		beego.AppConfig.Set("SSL_ROOT_CERT", getwd + "/server.crt")
+		beego.AppConfig.Set("ssl_ciphers",
+			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+		_, err := DoRequest(req)
+		assert.NotNil(t, err,"DoRequest execution result")
+	})
+
+
+	t.Run("ValidateRegexp", func(t *testing.T) {
+		err := ValidateRegexp("abcdef", "a]{1}[b]{1}[abc|cab|bca|acb|ac|ca|ab|bc|cb][b]{1}[a]{1}$", "failed to validate string")
+		assert.NotNil(t, err,"ValidateRegexp execution result")
+	})
+
 }
