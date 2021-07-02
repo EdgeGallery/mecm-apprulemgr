@@ -115,7 +115,7 @@ func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response
 	if httpResponse.StatusCode == http.StatusOK {
 		var operationProgressModel *models.OperationProgressModel
 		if err = json.Unmarshal(mepResponse, &operationProgressModel); err != nil {
-			log.Error("failed to unmarshal")
+			log.Error(util.FailedToUnmarshal)
 			return nil, err
 		}
 		return createResponse(httpResponse.StatusCode, operationProgressModel), nil
@@ -123,7 +123,7 @@ func parseResponse(httpResponse *http.Response, appInstanceId string) (*Response
 
 	var operationFailureModel *models.OperationFailureModel
 	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
-		log.Error("failed to unmarshal")
+		log.Error(util.FailedToUnmarshal)
 		return nil, err
 	}
 	return createResponse(httpResponse.StatusCode,
@@ -141,7 +141,7 @@ func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Respo
 	if httpResponse.StatusCode == http.StatusOK {
 		var appRuleModel *models.AppdRule
 		if err = json.Unmarshal(mepResponse, &appRuleModel); err != nil {
-			log.Error("failed to unmarshal")
+			log.Error(util.FailedToUnmarshal)
 			return nil, err
 		}
 		return createGetResponse(httpResponse.StatusCode, appRuleModel), nil
@@ -149,7 +149,7 @@ func parseGetResponse(httpResponse *http.Response, appInstanceId string) (*Respo
 
 	var operationFailureModel *models.OperationFailureModel
 	if err = json.Unmarshal(mepResponse, &operationFailureModel); err != nil {
-		log.Error("failed to unmarshal")
+		log.Error(util.FailedToUnmarshal)
 		return nil, err
 	}
 	return createResponse(httpResponse.StatusCode, util.CreateOperationProgressModel(appInstanceId,
