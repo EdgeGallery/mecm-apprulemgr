@@ -79,6 +79,7 @@ const (
 	RequestBodyTooLarge               = "request body too large"
 	IllegalTenantId            string = "illegal TenantId"
 	Forbidden                  string = "forbidden"
+	FailedToUnmarshal                 = "failed to unmarshal"
 
 	// log messages
 	AppRuleConfigSuccess = "app rule configured successfully"
