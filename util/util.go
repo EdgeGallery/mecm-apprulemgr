@@ -85,7 +85,6 @@ const (
 	AppRuleConfigSuccess = "app rule configured successfully"
 	AppRuleConfigFailed  = "app rule configuration failed"
 	AppRuleConfigTimeout = "app rule configuration timeout"
-	FailedToUnmarshal = "failed to unmarshal"
 
 	// app related constants
 	AppInstanceId string = ":appInstanceId"
