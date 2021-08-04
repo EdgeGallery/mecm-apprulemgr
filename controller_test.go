@@ -217,3 +217,38 @@ func TestAppRuleConfigRequest(t *testing.T) {
 		assert.Equal(t, 400, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
 	})
 }
+func TestSynchronizeUpdatedRecords(t *testing.T) {
+
+	synchronizeUpdatedRecords := setup(Get, nil, appInstanceId, tenantId)
+	// Test Capability
+	synchronizeUpdatedRecords.SynchronizeUpdatedRecords()
+
+	// Check for success case wherein the status value will be default i.e. 0
+	assert.Equal(t, 0, synchronizeUpdatedRecords.Ctx.Output.Context.ResponseWriter.Status)
+}
+
+func TestSynchronizeDeletedRecords(t *testing.T) {
+
+	synchronizeDeletedRecords := setup(Get, nil, appInstanceId, tenantId)
+	// Test Capability
+	synchronizeDeletedRecords.SynchronizeDeletedRecords()
+
+	// Check for success case wherein the status value will be default i.e. 0
+	assert.Equal(t, 0, synchronizeDeletedRecords.Ctx.Output.Context.ResponseWriter.Status)
+}
+
+func TestWriteSyncErrorResponse(t *testing.T) {
+
+	writeSyncErrorResponse1 := setup(Get, nil, appInstanceId, tenantId)
+	// Test Capability
+	writeSyncErrorResponse1.WriteSyncErrorResponse("There is an error", 1)
+
+}
+
+func TestHandleLoggingForSyncError(t *testing.T) {
+
+	handleLoggingForSyncError := setup(Get, nil, appInstanceId, tenantId)
+	// Test Capability
+	handleLoggingForSyncError.HandleLoggingForSyncError("256.1.1.1", 1, "error")
+
+}

@@ -364,7 +364,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
-		c.handleLoggingForSyncError(clientIp, code, err.Error())
+		c.HandleLoggingForSyncError(clientIp, code, err.Error())
 		return
 	}
 
@@ -385,19 +385,19 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
-		c.writeSyncErrorResponse("invalid ip address", util.BadRequest)
+		c.WriteSyncErrorResponse("invalid ip address", util.BadRequest)
 		return
 	}
 	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
-		c.handleLoggingForSyncError(clientIp, code, err.Error())
+		c.HandleLoggingForSyncError(clientIp, code, err.Error())
 		return
 	}
 	_, _ = c.Db.QueryTable("stale_appd_rule", &staleRules, "tenant_id", c.Ctx.Input.Param(util.TenantId))
 	syncDeletedRulesRecords.AppdRuleDeletedRecs = append(syncDeletedRulesRecords.AppdRuleDeletedRecs, staleRules...)
 	appRuleModelBytes, err := json.Marshal(syncDeletedRulesRecords)
 	if err != nil {
-		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
+		c.WriteSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
 	}
 
@@ -407,7 +407,7 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 	for _, staleRule := range staleRules {
 		err = c.Db.DeleteData(&staleRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
-			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to delete stale data in " +
+			c.HandleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to delete stale data in " +
 				"database with error: ." + err.Error())
 			return
 		}
@@ -415,7 +415,7 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 }
 
 // Write error response
-func (c *AppRuleController) writeSyncErrorResponse(errMsg string, code int) {
+func (c *AppRuleController) WriteSyncErrorResponse(errMsg string, code int) {
 	log.Error(errMsg)
 	c.writeSyncResponse(errMsg, code)
 }
@@ -428,8 +428,8 @@ func (c *AppRuleController) writeSyncResponse(msg string, code int) {
 }
 
 // Handled logging for error case
-func (c *AppRuleController) handleLoggingForSyncError(clientIp string, code int, errMsg string) {
-	c.writeSyncErrorResponse(errMsg, code)
+func (c *AppRuleController) HandleLoggingForSyncError(clientIp string, code int, errMsg string) {
+	c.WriteSyncErrorResponse(errMsg, code)
 	log.Info("Response message for ClientIP [" + clientIp + operation + c.Ctx.Request.Method + "]" +
 		resource + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
 }
@@ -839,7 +839,7 @@ func (c *AppRuleController) sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models
 	appdRulesSync []models.AppdRuleRec, clientIp string) {
 	appRuleModelBytes, err := json.Marshal(syncUpdatedRulesRecs)
 	if err != nil {
-		c.writeSyncErrorResponse(failedToMarshal, util.BadRequest)
+		c.WriteSyncErrorResponse(failedToMarshal, util.BadRequest)
 		return
 	}
 
@@ -851,7 +851,7 @@ func (c *AppRuleController) sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models
 		appRule.SyncStatus = true
 		err = c.Db.InsertOrUpdateData(&appRule, appdRuleId)
 		if err != nil && err.Error() != lastInsertIdNotSupported {
-			c.handleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to update sync status to true " +
+			c.HandleLoggingForSyncError(clientIp, util.InternalServerError, "Failed to update sync status to true " +
 				"to database with error: ." + err.Error())
 			return
 		}
