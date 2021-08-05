@@ -18,15 +18,19 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"mecm-apprulemgr/controllers"
+	"mecm-apprulemgr/models"
+	_ "mecm-apprulemgr/models"
 	"mecm-apprulemgr/util"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -134,6 +138,7 @@ func setup(method string, body []byte, appInstanceId string, tenantId string) *c
 }
 
 func TestGetAppRuleConfig(t *testing.T) {
+	err := errors.New("error")
 	// Mock the required API
 	patch2 := gomonkey.ApplyFunc(util.ClearByteArray, func(_ []byte) {
 		// do nothing
@@ -156,6 +161,20 @@ func TestGetAppRuleConfig(t *testing.T) {
 
 	// Check for success case wherein the status value will be default i.e. 0
 	assert.Equal(t, 200, appRuleController.Ctx.Output.Context.ResponseWriter.Status)
+
+
+	patch5 := gomonkey.ApplyMethod(reflect.TypeOf(appRuleController), "ValidateRequest", func(controller *controllers.AppRuleController, allowedRoles []string, isAppInstanceAvailable bool) (code int, error error) {
+		return 1, err
+	})
+	defer patch5.Reset()
+	appRuleController.GetAppRuleConfig()
+
+	patch8 := gomonkey.ApplyMethod(reflect.TypeOf(appRuleController), "ValidateRequest", func(controller *controllers.AppRuleController, allowedRoles []string, isAppInstanceAvailable bool) (code int, error error) {
+		return 1, err
+	})
+	defer patch8.Reset()
+	appRuleController.HandleAppRuleConfig("")
+
 }
 
 func TestAppRuleConfigRequest(t *testing.T) {
@@ -218,23 +237,39 @@ func TestAppRuleConfigRequest(t *testing.T) {
 	})
 }
 func TestSynchronizeUpdatedRecords(t *testing.T) {
-
+	err := errors.New("error")
 	synchronizeUpdatedRecords := setup(Get, nil, appInstanceId, tenantId)
 	// Test Capability
 	synchronizeUpdatedRecords.SynchronizeUpdatedRecords()
 
 	// Check for success case wherein the status value will be default i.e. 0
 	assert.Equal(t, 0, synchronizeUpdatedRecords.Ctx.Output.Context.ResponseWriter.Status)
+
+	patch1 := gomonkey.ApplyMethod(reflect.TypeOf(synchronizeUpdatedRecords), "ValidateRequest", func(controller *controllers.AppRuleController, allowedRoles []string, isAppInstanceAvailable bool) (code int, error error) {
+		return 1, err
+	})
+	defer patch1.Reset()
+	synchronizeUpdatedRecords.SynchronizeUpdatedRecords()
+
+	handleLoggingForSyncError := setup(Get, nil, appInstanceId, tenantId)
+	// Test Capability
+	handleLoggingForSyncError.HandleLoggingForSyncError("256.1.1.1", 1, "error")
 }
 
 func TestSynchronizeDeletedRecords(t *testing.T) {
-
+	err := errors.New("error")
 	synchronizeDeletedRecords := setup(Get, nil, appInstanceId, tenantId)
 	// Test Capability
 	synchronizeDeletedRecords.SynchronizeDeletedRecords()
 
 	// Check for success case wherein the status value will be default i.e. 0
 	assert.Equal(t, 0, synchronizeDeletedRecords.Ctx.Output.Context.ResponseWriter.Status)
+
+	patch1 := gomonkey.ApplyMethod(reflect.TypeOf(synchronizeDeletedRecords), "ValidateRequest", func(controller *controllers.AppRuleController, allowedRoles []string, isAppInstanceAvailable bool) (code int, error error) {
+		return 1, err
+	})
+	defer patch1.Reset()
+	synchronizeDeletedRecords.SynchronizeDeletedRecords()
 }
 
 func TestWriteSyncErrorResponse(t *testing.T) {
@@ -245,10 +280,39 @@ func TestWriteSyncErrorResponse(t *testing.T) {
 
 }
 
-func TestHandleLoggingForSyncError(t *testing.T) {
+func TestGetAppTrafficRules(t *testing.T) {
 
-	handleLoggingForSyncError := setup(Get, nil, appInstanceId, tenantId)
+	appTrafficRules := setup(Get, nil, appInstanceId, tenantId)
 	// Test Capability
-	handleLoggingForSyncError.HandleLoggingForSyncError("256.1.1.1", 1, "error")
+	var appdRuleRec models.AppdRuleRec
+	appTrafficRules.GetAppTrafficRules(appdRuleRec)
 
 }
+
+func TestInsertDelete(t *testing.T) {
+	err := errors.New("error")
+	appRuleController := setup(Post, []byte(appRule), appInstanceId, tenantId)
+
+	patch1 := gomonkey.ApplyMethod(reflect.TypeOf(appRuleController.Db), "InsertOrUpdateData", func(controller *controllers.MockDb,data interface{}, cols ...string) (error error) {
+		return err
+	})
+	defer patch1.Reset()
+	var filter models.TrafficFilter
+	var trafficFilterRec *models.TrafficFilterRec
+
+	appRuleController.InsertSrcAddressRec(filter, trafficFilterRec, appInstanceId)
+
+	patch2 := gomonkey.ApplyMethod(reflect.TypeOf(appRuleController.Db), "InsertOrUpdateData", func(controller *controllers.MockDb,data interface{}, cols ...string) (error error) {
+		return err
+	})
+	defer patch2.Reset()
+	appRuleController.DeleteAppRuleConfig()
+
+	patch3 := gomonkey.ApplyMethod(reflect.TypeOf(appRuleController.Db), "DeleteData", func(controller *controllers.MockDb,data interface{}, cols ...string) (error error) {
+		return err
+	})
+	defer patch3.Reset()
+	appRuleController.DeleteAppRuleConfig()
+}
+
+
