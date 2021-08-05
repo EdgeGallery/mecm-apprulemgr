@@ -53,19 +53,19 @@ func (c *AppRuleController) HealthCheck() {
 // CreateAppRuleConfig Configures app rule
 func (c *AppRuleController) CreateAppRuleConfig() {
 	log.Info("Application Rule Config create request received.")
-	c.handleAppRuleConfig(util.Post)
+	c.HandleAppRuleConfig(util.Post)
 }
 
 // UpdateAppRuleConfig Updates app rule configuration
 func (c *AppRuleController) UpdateAppRuleConfig() {
 	log.Info("Application Rule Config update request received.")
-	c.handleAppRuleConfig(util.Put)
+	c.HandleAppRuleConfig(util.Put)
 }
 
 // DeleteAppRuleConfig Deletes app rule configuration
 func (c *AppRuleController) DeleteAppRuleConfig() {
 	log.Info("Application Rule Config delete request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
+	code, err := c.ValidateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -112,13 +112,13 @@ func (c *AppRuleController) DeleteAppRuleConfig() {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
 		return
 	}
-	c.writeResponse(progressModelBytes, response.code)
+	c.WriteResponse(progressModelBytes, response.code)
 }
 
 // GetAppRuleConfig Returns app rule configuration
 func (c *AppRuleController) GetAppRuleConfig() {
 	log.Info("Application Rule Config get request received.")
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole}, true)
+	code, err := c.ValidateRequest([]string{util.MecmTenantRole, util.MecmAdminRole, util.MecmGuestRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -144,7 +144,7 @@ func (c *AppRuleController) GetAppRuleConfig() {
 			c.handleLoggingForError(util.InternalServerError, util.MarshalAppRuleModelError, appInstanceId)
 			return
 		}
-		c.writeResponse(appRuleModelBytes, response.code)
+		c.WriteResponse(appRuleModelBytes, response.code)
 		return
 	}
 
@@ -153,19 +153,19 @@ func (c *AppRuleController) GetAppRuleConfig() {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
 		return
 	}
-	c.writeResponse(progressModelBytes, response.code)
+	c.WriteResponse(progressModelBytes, response.code)
 }
 
 // Handled logging for error case
 func (c *AppRuleController) handleLoggingForError(code int, errMsg string, appInstanceId string) {
-	c.writeErrorResponse(errMsg, code, appInstanceId)
+	c.WriteErrorResponse(errMsg, code, appInstanceId)
 	clientIp := c.Ctx.Input.IP()
 	log.Info("Response message for ClientIP [" + clientIp + operation + c.Ctx.Request.Method + "]" +
 		resource + c.Ctx.Input.URL() + "] Result [Failure: " + errMsg + ".]")
 }
 
 // Write error response
-func (c *AppRuleController) writeErrorResponse(errMsg string, code int, appInstanceId string) {
+func (c *AppRuleController) WriteErrorResponse(errMsg string, code int, appInstanceId string) {
 	progressModel := util.CreateOperationProgressModel(appInstanceId, util.Failure, errMsg)
 	progressModelBytes, err := json.Marshal(progressModel)
 	if err != nil {
@@ -173,11 +173,11 @@ func (c *AppRuleController) writeErrorResponse(errMsg string, code int, appInsta
 		return
 	}
 	log.Error(errMsg)
-	c.writeResponse(progressModelBytes, code)
+	c.WriteResponse(progressModelBytes, code)
 }
 
 // Write response
-func (c *AppRuleController) writeResponse(msg []byte, code int) {
+func (c *AppRuleController) WriteResponse(msg []byte, code int) {
 	c.Ctx.Output.SetStatus(code)
 	err := c.Ctx.Output.Body(msg)
 	if err != nil {
@@ -210,7 +210,7 @@ func (c *AppRuleController) validateApiParams() error {
 }
 
 // validates and returns apprule model
-func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
+func (c *AppRuleController) ValidateAppRuleModel() (*models.AppdRule, error) {
 	if len(c.Ctx.Input.RequestBody) > util.RequestBodyLength {
 		return nil, errors.New(util.RequestBodyTooLarge)
 	}
@@ -230,7 +230,7 @@ func (c *AppRuleController) validateAppRuleModel() (*models.AppdRule, error) {
 }
 
 // validates rest request
-func (c *AppRuleController) validateRequest(allowedRoles []string, isAppInstanceAvailable bool) (int, error) {
+func (c *AppRuleController) ValidateRequest(allowedRoles []string, isAppInstanceAvailable bool) (int, error) {
 	clientIp := c.Ctx.Input.IP()
 	err := util.ValidateIpv4Address(clientIp)
 	if err != nil {
@@ -259,8 +259,8 @@ func (c *AppRuleController) validateRequest(allowedRoles []string, isAppInstance
 }
 
 // Handle app rule configuration
-func (c *AppRuleController) handleAppRuleConfig(method string) {
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
+func (c *AppRuleController) HandleAppRuleConfig(method string) {
+	code, err := c.ValidateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, true)
 	if err != nil {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
@@ -272,7 +272,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 		c.handleLoggingForError(code, err.Error(), "")
 		return
 	}
-	appRuleConfig, err := c.validateAppRuleModel()
+	appRuleConfig, err := c.ValidateAppRuleModel()
 	if err != nil {
 		c.handleLoggingForError(util.BadRequest, err.Error(), appInstanceId)
 		return
@@ -334,7 +334,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 		return
 	}
 
-	err = c.insertOrUpdateAppTrafficRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
+	err = c.InsertOrUpdateAppTrafficRuleRec(appRuleConfig, appdRuleRec, appInstanceId)
 	if err != nil {
 		log.Error("failed to insert app traffic rule record")
 		return
@@ -351,7 +351,7 @@ func (c *AppRuleController) handleAppRuleConfig(method string) {
 		c.handleLoggingForError(util.InternalServerError, util.MarshalProgressModelError, appInstanceId)
 		return
 	}
-	c.writeResponse(progressModelBytes, response.code)
+	c.WriteResponse(progressModelBytes, response.code)
 }
 
 // SynchronizeUpdatedRecords Synchronize added or update records
@@ -362,7 +362,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 
 	clientIp := c.Ctx.Input.IP()
 
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
+	code, err := c.ValidateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
 		c.HandleLoggingForSyncError(clientIp, code, err.Error())
 		return
@@ -371,7 +371,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 	appdRulesSync := c.getAppdRuleSyncInfo()
 	syncUpdatedRulesRecords.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecords.AppdRuleUpdatedRecs, appdRulesSync...)
 	syncUpdatedRulesRecs := c.getSyncUpdatedRulesRecs(syncUpdatedRulesRecords)
-	c.sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs, appdRulesSync, clientIp)
+	c.SendSyncUpdatedRulesRecs(syncUpdatedRulesRecs, appdRulesSync, clientIp)
 }
 
 // SynchronizeDeletedRecords Synchronize deleted records
@@ -388,7 +388,7 @@ func (c *AppRuleController) SynchronizeDeletedRecords() {
 		c.WriteSyncErrorResponse("invalid ip address", util.BadRequest)
 		return
 	}
-	code, err := c.validateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
+	code, err := c.ValidateRequest([]string{util.MecmTenantRole, util.MecmAdminRole}, false)
 	if err != nil {
 		c.HandleLoggingForSyncError(clientIp, code, err.Error())
 		return
@@ -435,7 +435,7 @@ func (c *AppRuleController) HandleLoggingForSyncError(clientIp string, code int,
 }
 
 // Insert source address record
-func (c *AppRuleController) insertSrcAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
+func (c *AppRuleController) InsertSrcAddressRec(filter models.TrafficFilter, trafficFilterRec *models.TrafficFilterRec,
 	appInstanceId string) error {
 
 	for _, srcAddress := range filter.SrcAddress {
@@ -625,7 +625,7 @@ func (c *AppRuleController) insertDstTunnelPortRec(filter models.TrafficFilter, 
 }
 
 // Insert or update app traffic rule record
-func (c *AppRuleController) insertOrUpdateAppTrafficRuleRec(appRuleConfig *models.AppdRule,
+func (c *AppRuleController) InsertOrUpdateAppTrafficRuleRec(appRuleConfig *models.AppdRule,
 	appdRuleRec *models.AppdRuleRec, appInstanceId string) error {
 	for _, appRule := range appRuleConfig.AppTrafficRule {
 		appTrafficRuleRec := &models.AppTrafficRuleRec{
@@ -681,7 +681,7 @@ func (c *AppRuleController) insertOrUpdateAppDnsRuleRec(appRuleConfig *models.Ap
 // Insert or update traffic filter child records
 func (c *AppRuleController) insertOrUpdateTrafficFltrChildRecs(filter models.TrafficFilter,
 	trafficFilterRec *models.TrafficFilterRec, appInstanceId string) error {
-	err := c.insertSrcAddressRec(filter, trafficFilterRec, appInstanceId)
+	err := c.InsertSrcAddressRec(filter, trafficFilterRec, appInstanceId)
 	if err != nil {
 		return err
 	}
@@ -835,7 +835,7 @@ func (c *AppRuleController) getAppdRuleSyncInfo() []models.AppdRuleRec {
 }
 
 // Get sync updated rules records
-func (c *AppRuleController) sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models.SyncUpdatedRulesRecs,
+func (c *AppRuleController) SendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models.SyncUpdatedRulesRecs,
 	appdRulesSync []models.AppdRuleRec, clientIp string) {
 	appRuleModelBytes, err := json.Marshal(syncUpdatedRulesRecs)
 	if err != nil {
@@ -859,7 +859,7 @@ func (c *AppRuleController) sendSyncUpdatedRulesRecs(syncUpdatedRulesRecs models
 }
 
 // Get traffic filter information
-func (c *AppRuleController) getTrafficFilterInfo(trafficFilter *models.TrafficFilterRec) models.TrafficFilter {
+func (c *AppRuleController) GetTrafficFilterInfo(trafficFilter *models.TrafficFilterRec) models.TrafficFilter {
 	var srcAddress           []string
 	var srcPorts             []string
 	var dstAddress           []string
@@ -918,14 +918,14 @@ func (c *AppRuleController) getTrafficFilterInfo(trafficFilter *models.TrafficFi
 }
 
 // Get app traffic filter rules
-func (c *AppRuleController) getAppTrafficRules(appdRuleRec models.AppdRuleRec) []models.AppTrafficRule {
+func (c *AppRuleController) GetAppTrafficRules(appdRuleRec models.AppdRuleRec) []models.AppTrafficRule {
 	var trafficFilters  []models.TrafficFilter
 	var dstInterfaces   []models.DstInterface
 	var appTrafficRules []models.AppTrafficRule
 
 	for _, appTrafficRule := range appdRuleRec.AppTrafficRuleRec{
 		for _, trafficFilter := range appTrafficRule.AppTrafficFilterRec {
-			trafficFil := c.getTrafficFilterInfo(trafficFilter)
+			trafficFil := c.GetTrafficFilterInfo(trafficFilter)
 			trafficFilters = append(trafficFilters, trafficFil)
 		}
 
@@ -967,7 +967,7 @@ func (c *AppRuleController) getSyncUpdatedRulesRecs(syncUpdatedRulesRecords mode
 	var appDnsRules     []models.AppDnsRule
 
 	for _, appdRuleRec := range syncUpdatedRulesRecords.AppdRuleUpdatedRecs {
-		appTrafficRules := c.getAppTrafficRules(appdRuleRec)
+		appTrafficRules := c.GetAppTrafficRules(appdRuleRec)
 		for _, appDnsRuleRec := range appdRuleRec.AppDnsRuleRec {
 			appDnsRule := models.AppDnsRule{
 				DnsRuleId: appDnsRuleRec.DnsRuleId,
