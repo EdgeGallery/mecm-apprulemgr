@@ -280,13 +280,90 @@ func TestWriteSyncErrorResponse(t *testing.T) {
 
 }
 
-func TestGetAppTrafficRules(t *testing.T) {
-
+func TestGetSyncUpdatedRulesRecs(t *testing.T) {
 	appTrafficRules := setup(Get, nil, appInstanceId, tenantId)
-	// Test Capability
-	var appdRuleRec models.AppdRuleRec
-	appTrafficRules.GetAppTrafficRules(appdRuleRec)
+	var syncUpdatedRulesRecords models.SyncUpdatedRulesRecords
 
+	var appdRuleRec models.AppdRuleRec
+
+	var trafficFilterRec = &models.TrafficFilterRec{
+		TrafficFilterId: "trafficFilterId",
+	}
+
+	srcAddress := &models.SrcAddress{
+		SrcAddress: "pk",
+	}
+	srcPort := &models.SrcPort{
+		SrcPort: "8008",
+	}
+	dstAddress := &models.DstAddress{
+		DstAddress: "dstAddress",
+	}
+	dstPort := &models.DstPort{
+		DstPort: "dstPort",
+	}
+	protocol := &models.Protocol{
+		Protocol: "protocol",
+	}
+	tag := &models.Tag{
+		Tag: "tag",
+	}
+	srcTunnelAddress := &models.SrcTunnelAddress{
+		SrcTunnelAddress: "srcTunnelAddress",
+	}
+	srcTunnelPort :=&models.SrcTunnelPort{
+		SrcTunnelPort:    "srcTunnelPort",
+	}
+	dstTunnelPort :=&models.DstTunnelPort{
+		DstTunnelPort:    "dstTunnelPort",
+	}
+	appTraficRuleRec := &models.AppTrafficRuleRec{
+		TrafficRuleId: "id",
+		FilterType:    "filter",
+		Priority:      0,
+		Action:        "required",
+	}
+
+	trafficFilterRec.SrcAddress = append(trafficFilterRec.SrcAddress, srcAddress)
+	trafficFilterRec.SrcPort = append(trafficFilterRec.SrcPort, srcPort)
+	trafficFilterRec.DstAddress = append(trafficFilterRec.DstAddress, dstAddress)
+	trafficFilterRec.DstPort = append(trafficFilterRec.DstPort, dstPort)
+	trafficFilterRec.Protocol = append(trafficFilterRec.Protocol, protocol)
+	trafficFilterRec.Tag = append(trafficFilterRec.Tag, tag)
+	trafficFilterRec.SrcTunnelAddress = append(trafficFilterRec.SrcTunnelAddress, srcTunnelAddress)
+	trafficFilterRec.SrcTunnelPort = append(trafficFilterRec.SrcTunnelPort, srcTunnelPort)
+	trafficFilterRec.DstTunnelPort = append(trafficFilterRec.DstTunnelPort, dstTunnelPort)
+
+	appTraficRuleRec.AppTrafficFilterRec = append(appTraficRuleRec.AppTrafficFilterRec, trafficFilterRec)
+	appdRuleRec.AppTrafficRuleRec = append(appdRuleRec.AppTrafficRuleRec, appTraficRuleRec)
+
+	var dstInterfaceRec = &models.DstInterfaceRec{
+		DstInterfaceId: "id1",
+		InterfaceType:  "interfaceType",
+		SrcMacAddress:  "srcMacAddress",
+		DstMacAddress:  "dstMacAddress",
+		DstIpAddress:   "dstIpAddress",
+	}
+	appTraficRuleRec.DstInterfaceRec = append(appTraficRuleRec.DstInterfaceRec, dstInterfaceRec)
+	tunnelInfoRec := &models.TunnelInfoRec{
+		TunnelInfoId:       "tunnelInfoId",
+		TunnelType:         "tunnelType",
+		TunnelDstAddress:   "tunnelAddress",
+		TunnelSrcAddress:   "tunnelSrcAddress",
+		TunnelSpecificData: "tunnelSpecifications",
+	}
+	dstInterfaceRec.TunnelInfoRec = tunnelInfoRec
+	appDnsRuleRec := &models.AppDnsRuleRec{
+		DnsRuleId:     "dnsRuleId",
+		DomainName:    "domainId",
+		IpAddressType: "IP_V4",
+		IpAddress:     "1.1.1.1",
+		TTL:           0,
+	}
+	appdRuleRec.AppDnsRuleRec = append(appdRuleRec.AppDnsRuleRec, appDnsRuleRec)
+	syncUpdatedRulesRecords.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecords.AppdRuleUpdatedRecs, appdRuleRec)
+
+	appTrafficRules.GetSyncUpdatedRulesRecs(syncUpdatedRulesRecords)
 }
 
 func TestInsertDelete(t *testing.T) {
