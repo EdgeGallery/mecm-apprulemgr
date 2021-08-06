@@ -370,7 +370,7 @@ func (c *AppRuleController) SynchronizeUpdatedRecords() {
 
 	appdRulesSync := c.getAppdRuleSyncInfo()
 	syncUpdatedRulesRecords.AppdRuleUpdatedRecs = append(syncUpdatedRulesRecords.AppdRuleUpdatedRecs, appdRulesSync...)
-	syncUpdatedRulesRecs := c.getSyncUpdatedRulesRecs(syncUpdatedRulesRecords)
+	syncUpdatedRulesRecs := c.GetSyncUpdatedRulesRecs(syncUpdatedRulesRecords)
 	c.SendSyncUpdatedRulesRecs(syncUpdatedRulesRecs, appdRulesSync, clientIp)
 }
 
@@ -962,7 +962,7 @@ func (c *AppRuleController) GetAppTrafficRules(appdRuleRec models.AppdRuleRec) [
 }
 
 // Get sync updated rules records
-func (c *AppRuleController) getSyncUpdatedRulesRecs(syncUpdatedRulesRecords models.SyncUpdatedRulesRecords) models.SyncUpdatedRulesRecs {
+func (c *AppRuleController) GetSyncUpdatedRulesRecs(syncUpdatedRulesRecords models.SyncUpdatedRulesRecords) models.SyncUpdatedRulesRecs {
 	var syncUpdatedRulesRecs models.SyncUpdatedRulesRecs
 	var appDnsRules     []models.AppDnsRule
 
