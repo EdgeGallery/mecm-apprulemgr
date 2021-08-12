@@ -58,6 +58,7 @@ func (db *PgDb) InitOrmer() (err1 error) {
 	o := orm.NewOrm()
 	err1 = o.Using(defaultAlias)
 	if err1 != nil {
+		log.Error("Error using default:", err1)
 		return err1
 	}
 	db.ormer = o

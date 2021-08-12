@@ -43,18 +43,19 @@ func createAppRuleFacade(restClient *RestClient, appInstanceId string) *AppRuleF
 func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 	httpResponse, err := a.restClient.sendRequest()
 	if err != nil {
-		log.Error("failed to send request")
+		log.Error("failed to send request:",err)
 		return nil, err
 	}
 	defer httpResponse.Body.Close()
 
 	response, err := parseResponse(httpResponse, a.appInstanceId)
 	if err != nil {
+		log.Error("failed to parse response")
 		return nil, err
 	}
 
 	if response.code != http.StatusOK {
-		log.Error("the response code is not success")
+		log.Error("the response code is not success and response code is:", response.code)
 		return response, nil
 	}
 
@@ -77,13 +78,14 @@ func (a *AppRuleFacade) handleAppRuleRequest() (*Response, error) {
 func (a *AppRuleFacade) handleAppRuleGetRequest() (*Response, error) {
 	httpResponse, err := a.restClient.sendRequest()
 	if err != nil {
-		log.Error("failed to send request")
+		log.Error("failed to send request:",err)
 		return nil, err
 	}
 	defer httpResponse.Body.Close()
 
 	response, err := parseGetResponse(httpResponse, a.appInstanceId)
 	if err != nil {
+		log.Error("failed to parse get response")
 		return nil, err
 	}
 	return response, nil
@@ -91,7 +93,7 @@ func (a *AppRuleFacade) handleAppRuleGetRequest() (*Response, error) {
 
 // Creates new rest client based on method
 func createRestClient(url string, method string, rule *models.AppdRule) (*RestClient, error) {
-	if method == util.Post || method == util.Put {
+	/*if method == util.Post || method == util.Put {
 		appRuleConfigBytes, err := json.Marshal(rule)
 		if err != nil {
 			log.Error("failed to marshal app rule model")
@@ -101,5 +103,18 @@ func createRestClient(url string, method string, rule *models.AppdRule) (*RestCl
 	} else if method == util.Get || method == util.Delete {
 		return CreateRestClient(url, method, nil), nil
 	}
-	return nil, errors.New(util.UnknownRestMethod)
+	return nil, errors.New(util.UnknownRestMethod)*/
+	switch method {
+	case "POST", "PUT":
+		appRuleConfigBytes, err := json.Marshal(rule)
+		if err != nil {
+			log.Error("failed to marshal app rule model")
+			return nil, errors.New(util.MarshalAppRuleModelError)
+		}
+		return CreateRestClient(url, method, appRuleConfigBytes), nil
+	case "GET", "DELETE":
+		return CreateRestClient(url, method, nil), nil
+	default:
+		return nil, errors.New(util.UnknownRestMethod)
+	}
 }
