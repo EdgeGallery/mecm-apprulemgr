@@ -64,7 +64,7 @@ type AppTrafficRule struct {
 	TrafficRuleId    string           `orm:"pk" json:"trafficRuleId" validate:"required,max=128"`
 	FilterType       string           `json:"filterType" validate:"required,oneof=FLOW PACKET"`
 	Priority         int              `json:"priority" validate:"required,gt=0,max=255"`
-	Action           string           `json:"action" validate:"required,oneof=DROP PASSTHROUGH"`
+	Action           string           `json:"action" validate:"required,oneof=DROP PASSTHROUGH FORWARD_DECAPSULATED FORWARD_AS_IS DUPLICATED_DECAPSULATED DUPLICATE_AS_IS"`
 	AppTrafficFilter []TrafficFilter `orm:"reverse(many);on_delete(set_null)" json:"trafficFilter" validate:"required,dive"`
 	DstInterface     []DstInterface  `orm:"reverse(many);on_delete(set_null)" json:"dstInterface" validate:"omitempty,dive"`
 }
@@ -166,7 +166,7 @@ type AppTrafficRuleRec struct {
 	TrafficRuleId    string           `orm:"pk" json:"trafficRuleId" validate:"required,max=128"`
 	FilterType       string           `json:"filterType" validate:"required,oneof=FLOW PACKET"`
 	Priority         int              `json:"priority" validate:"required,gt=0,max=255"`
-	Action           string           `json:"action" validate:"required,oneof=DROP PASSTHROUGH"`
+	Action           string           `json:"action" validate:"required,oneof=DROP PASSTHROUGH FORWARD_DECAPSULATED FORWARD_AS_IS DUPLICATED_DECAPSULATED DUPLICATE_AS_IS"`
 	AppTrafficFilterRec []*TrafficFilterRec `orm:"reverse(many);on_delete(set_null)" json:"trafficFilter" validate:"required,dive"`
 	DstInterfaceRec     []*DstInterfaceRec  `orm:"reverse(many);on_delete(set_null)" json:"dstInterface" validate:"omitempty,dive"`
 	AppdRule         *AppdRuleRec        `orm:"rel(fk)"`
