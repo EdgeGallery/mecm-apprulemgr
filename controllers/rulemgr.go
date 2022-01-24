@@ -746,7 +746,7 @@ func (c *AppRuleController) insertOrUpdateTrafficFltrRec(appRule models.AppTraff
 		}
 		err :=c.insertOrUpdateTrafficFltrChildRecs(filter, trafficFilterRec, appInstanceId)
 		if err != nil {
-			log.Error("failed to insert child records")
+			log.Error("failed to insert child records:",err)
 			return err
 		}
 
